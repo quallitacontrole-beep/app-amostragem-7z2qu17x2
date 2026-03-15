@@ -37,8 +37,31 @@ export function RegistroItens({
         analiseSolicitada: '',
       },
     ])
-  const updateItem = (id: string, field: keyof AmostraItem, value: any) =>
-    setItens(itens.map((it) => (it.id === id ? { ...it, [field]: value } : it)))
+
+  const handleUpdateItem = (id: string, field: keyof AmostraItem, value: any) => {
+    setItens(
+      itens.map((it) => {
+        if (it.id !== id) return it
+        const newItem = { ...it, [field]: value }
+
+        const isProd = newItem.tipo === 'Produto Acabado Farmacêutico'
+        const isMp = newItem.tipo === 'Matéria-prima Diluída'
+        const isFQ = newItem.setorDestino === 'Físico-Químico'
+
+        if (!(isProd && isFQ)) {
+          delete newItem.dosagem
+          delete newItem.unidadeDosagem
+        }
+        if (!(isMp && isFQ)) delete newItem.fatorDiluicao
+        if (!(isFQ && (isProd || isMp))) {
+          delete newItem.enviou1gExcipiente
+          delete newItem.enviou1gAtivo
+        }
+
+        return newItem
+      }),
+    )
+  }
 
   return (
     <Card className="animate-slide-down">
@@ -55,32 +78,37 @@ export function RegistroItens({
           </p>
         )}
         {itens.map((item, index) => {
-          const isProdAcabado = item.tipo === 'Produto Acabado Farmacêutico'
+          const isProd = item.tipo === 'Produto Acabado Farmacêutico'
+          const isMp = item.tipo === 'Matéria-prima Diluída'
           const isFQ = item.setorDestino === 'Físico-Químico'
-          const show1g = isFQ && (isProdAcabado || item.tipo === 'Matéria-prima Diluída')
+
+          const showDosagem = isProd && isFQ
+          const showFatorDiluicao = isMp && isFQ
+          const show1g = isFQ && (isProd || isMp)
 
           return (
             <div
               key={item.id}
               className="relative rounded-md border p-4 bg-muted/20 gap-4 grid md:grid-cols-4"
             >
-              <div className="absolute right-2 top-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-destructive"
-                  onClick={() => setItens(itens.filter((it) => it.id !== item.id))}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-2 h-6 w-6 text-destructive"
+                onClick={() => setItens(itens.filter((it) => it.id !== item.id))}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
               <div className="col-span-4 font-medium text-[13px] text-primary mb-2">
                 Amostra {index + 1}
               </div>
 
               <div className="space-y-2 md:col-span-2">
                 <Label>Tipo de Amostra</Label>
-                <Select value={item.tipo} onValueChange={(v) => updateItem(item.id, 'tipo', v)}>
+                <Select
+                  value={item.tipo}
+                  onValueChange={(v) => handleUpdateItem(item.id, 'tipo', v)}
+                >
                   <SelectTrigger className="text-left">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
@@ -100,28 +128,30 @@ export function RegistroItens({
                   <Input
                     value={item.quantidade}
                     onChange={(e) =>
-                      updateItem(item.id, 'quantidade', e.target.value.replace(/[^0-9.,]/g, ''))
+                      handleUpdateItem(
+                        item.id,
+                        'quantidade',
+                        e.target.value.replace(/[^0-9.,]/g, ''),
+                      )
                     }
                     className="flex-1 text-center"
                     placeholder="Qtd"
                   />
-                  <div className="w-[110px] shrink-0">
-                    <Select
-                      value={item.unidade}
-                      onValueChange={(v) => updateItem(item.id, 'unidade', v)}
-                    >
-                      <SelectTrigger className="w-full text-left">
-                        <SelectValue placeholder="Unid." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {configuracoes.unidadesQtd?.map((u) => (
-                          <SelectItem key={u} value={u}>
-                            {u}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select
+                    value={item.unidade}
+                    onValueChange={(v) => handleUpdateItem(item.id, 'unidade', v)}
+                  >
+                    <SelectTrigger className="w-[110px] text-left">
+                      <SelectValue placeholder="Unid." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {configuracoes.unidadesQtd?.map((u) => (
+                        <SelectItem key={u} value={u}>
+                          {u}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -129,7 +159,7 @@ export function RegistroItens({
                 <Label>Descrição</Label>
                 <Input
                   value={item.descricao}
-                  onChange={(e) => updateItem(item.id, 'descricao', e.target.value)}
+                  onChange={(e) => handleUpdateItem(item.id, 'descricao', e.target.value)}
                 />
               </div>
 
@@ -137,7 +167,7 @@ export function RegistroItens({
                 <Label>Embalagem</Label>
                 <Select
                   value={item.embalagem}
-                  onValueChange={(v) => updateItem(item.id, 'embalagem', v)}
+                  onValueChange={(v) => handleUpdateItem(item.id, 'embalagem', v)}
                 >
                   <SelectTrigger className="text-left">
                     <SelectValue placeholder="Selecione..." />
@@ -156,7 +186,7 @@ export function RegistroItens({
                 <Label>Setor de análise</Label>
                 <Select
                   value={item.setorDestino}
-                  onValueChange={(v) => updateItem(item.id, 'setorDestino', v)}
+                  onValueChange={(v) => handleUpdateItem(item.id, 'setorDestino', v)}
                 >
                   <SelectTrigger className="text-left">
                     <SelectValue placeholder="Selecione..." />
@@ -171,15 +201,24 @@ export function RegistroItens({
                 </Select>
               </div>
 
-              <div className="space-y-2 md:col-span-4">
+              <div className="space-y-2 md:col-span-2">
                 <Label>Análise</Label>
                 <Input
                   value={item.analiseSolicitada}
-                  onChange={(e) => updateItem(item.id, 'analiseSolicitada', e.target.value)}
+                  onChange={(e) => handleUpdateItem(item.id, 'analiseSolicitada', e.target.value)}
                 />
               </div>
 
-              {isProdAcabado && (
+              <div className="space-y-2 md:col-span-2">
+                <Label>Protocolo Web</Label>
+                <Input
+                  value={item.protocoloWeb || ''}
+                  onChange={(e) => handleUpdateItem(item.id, 'protocoloWeb', e.target.value)}
+                  placeholder="Ex: PW-12345"
+                />
+              </div>
+
+              {showDosagem && (
                 <div className="space-y-2 col-span-4 md:col-span-2 animate-fade-in bg-primary/5 p-3 rounded border border-primary/10">
                   <Label>Dosagem</Label>
                   <div className="flex gap-2">
@@ -187,39 +226,52 @@ export function RegistroItens({
                       placeholder="Valor"
                       value={item.dosagem || ''}
                       onChange={(e) =>
-                        updateItem(item.id, 'dosagem', e.target.value.replace(/[^0-9.,]/g, ''))
+                        handleUpdateItem(
+                          item.id,
+                          'dosagem',
+                          e.target.value.replace(/[^0-9.,]/g, ''),
+                        )
                       }
                       className="flex-1"
                     />
-                    <div className="w-[110px] shrink-0">
-                      <Select
-                        value={item.unidadeDosagem || ''}
-                        onValueChange={(v) => updateItem(item.id, 'unidadeDosagem', v)}
-                      >
-                        <SelectTrigger className="w-full text-left">
-                          <SelectValue placeholder="Unid." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {configuracoes.unidadesDosagem?.map((u) => (
-                            <SelectItem key={u} value={u}>
-                              {u}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <Select
+                      value={item.unidadeDosagem || ''}
+                      onValueChange={(v) => handleUpdateItem(item.id, 'unidadeDosagem', v)}
+                    >
+                      <SelectTrigger className="w-[110px] text-left">
+                        <SelectValue placeholder="Unid." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {configuracoes.unidadesDosagem?.map((u) => (
+                          <SelectItem key={u} value={u}>
+                            {u}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               )}
 
+              {showFatorDiluicao && (
+                <div className="space-y-2 col-span-4 md:col-span-2 animate-fade-in bg-primary/5 p-3 rounded border border-primary/10">
+                  <Label>Fator de Diluição</Label>
+                  <Input
+                    placeholder="Ex: 1:10"
+                    value={item.fatorDiluicao || ''}
+                    onChange={(e) => handleUpdateItem(item.id, 'fatorDiluicao', e.target.value)}
+                  />
+                </div>
+              )}
+
               {show1g && (
-                <div className="space-y-2 col-span-4 md:col-span-2 animate-fade-in bg-warning/5 p-3 rounded border border-warning/10 flex flex-col justify-center">
+                <div className="space-y-2 col-span-4 animate-fade-in bg-warning/5 p-3 rounded border border-warning/10">
                   <div className="flex gap-6">
                     <div className="space-y-2">
                       <Label className="text-xs">Enviou 1g Excipiente?</Label>
                       <RadioGroup
-                        value={item.enviou1gExcipiente || 'nao'}
-                        onValueChange={(v) => updateItem(item.id, 'enviou1gExcipiente', v)}
+                        value={item.enviou1gExcipiente}
+                        onValueChange={(v) => handleUpdateItem(item.id, 'enviou1gExcipiente', v)}
                         className="flex gap-2"
                       >
                         <div className="flex items-center space-x-1">
@@ -235,8 +287,8 @@ export function RegistroItens({
                     <div className="space-y-2">
                       <Label className="text-xs">Enviou 1g Ativo?</Label>
                       <RadioGroup
-                        value={item.enviou1gAtivo || 'nao'}
-                        onValueChange={(v) => updateItem(item.id, 'enviou1gAtivo', v)}
+                        value={item.enviou1gAtivo}
+                        onValueChange={(v) => handleUpdateItem(item.id, 'enviou1gAtivo', v)}
                         className="flex gap-2"
                       >
                         <div className="flex items-center space-x-1">

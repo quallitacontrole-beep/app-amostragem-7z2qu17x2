@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Save, Send, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -30,28 +30,37 @@ const formatName = (name: string) => {
 }
 
 export default function Registro() {
+  const { id } = useParams()
   const navigate = useNavigate()
-  const { addFicha, addAuditLog } = useAppStore()
+  const { fichas, addFicha, updateFicha, addAuditLog } = useAppStore()
   const { user } = useAuthStore()
   const [isOccModalOpen, setOccModalOpen] = useState(false)
   const [occText, setOccText] = useState('')
 
-  const [ficha, setFicha] = useState<Ficha>({
-    id: `FCH-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, '0')}`,
-    dataRecebimento: new Date().toISOString(),
-    responsavel: formatName(user?.name || ''),
-    formaRecebimento: '',
-    clienteNome: '',
-    cpfCnpj: '',
-    cidadeUf: '',
-    codigoContrato: '',
-    status: 'Em Triagem',
-    ocorrencias: [],
-    itens: [],
-    isDraft: true,
-  })
+  const existingFicha = id ? fichas.find((f) => f.id === id) : undefined
+
+  const [ficha, setFicha] = useState<Ficha>(
+    existingFicha || {
+      id: `FCH-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, '0')}`,
+      dataRecebimento: new Date().toISOString(),
+      responsavel: formatName(user?.name || ''),
+      formaRecebimento: '',
+      clienteNome: '',
+      cpfCnpj: '',
+      cidadeUf: '',
+      codigoContrato: '',
+      status: 'Em Triagem',
+      ocorrencias: [],
+      itens: [],
+      isDraft: true,
+    },
+  )
+
+  useEffect(() => {
+    if (existingFicha) setFicha(existingFicha)
+  }, [existingFicha])
 
   if (user?.role !== 'Amostrador' && user?.role !== 'Administrador') {
     return (
@@ -77,31 +86,44 @@ export default function Registro() {
     }
     if (ficha.cpfCnpj) {
       const digits = ficha.cpfCnpj.replace(/\D/g, '')
-      if (digits.length <= 11 && !isValidCpf(digits)) {
-        toast.error('CPF inválido.')
-        return false
-      }
-      if (digits.length > 11 && !isValidCnpj(digits)) {
-        toast.error('CNPJ inválido.')
+      if (digits.length <= 11 && !isValidCpf(digits)) return (toast.error('CPF inválido.'), false)
+      if (digits.length > 11 && !isValidCnpj(digits)) return (toast.error('CNPJ inválido.'), false)
+    }
+
+    for (const item of ficha.itens) {
+      const isFQ = item.setorDestino === 'Físico-Químico'
+      const requires1g =
+        isFQ &&
+        (item.tipo === 'Produto Acabado Farmacêutico' || item.tipo === 'Matéria-prima Diluída')
+      if (requires1g && (!item.enviou1gExcipiente || !item.enviou1gAtivo)) {
+        toast.error('Seleção de Excipiente e Ativo (1g) é obrigatória para os itens aplicáveis.')
         return false
       }
     }
     return true
   }
 
+  const saveFicha = (isDraftSave: boolean, ocorrencias?: Ocorrencia[]) => {
+    const action = id ? 'Atualizou' : 'Criou'
+    const status = isDraftSave ? 'Em Triagem' : 'Aguardando Secretaria'
+    const finalFicha = { ...ficha, status, isDraft: isDraftSave }
+    if (ocorrencias)
+      finalFicha.ocorrencias = id ? [...ficha.ocorrencias, ...ocorrencias] : ocorrencias
+
+    id ? updateFicha(finalFicha) : addFicha(finalFicha)
+    addAuditLog({ userId: user.id, userName: user.name, action, fichaId: ficha.id })
+  }
+
   const handleSaveDraft = () => {
     if (!validateForm()) return
-    addFicha({ ...ficha, status: 'Em Triagem' })
-    addAuditLog({ userId: user.id, userName: user.name, action: 'Criou', fichaId: ficha.id })
+    saveFicha(true)
     toast.success('Rascunho salvo com sucesso!')
     navigate('/')
   }
 
   const handleSubmit = () => {
     if (!validateForm()) return
-
-    addFicha({ ...ficha, status: 'Aguardando Secretaria', isDraft: false })
-    addAuditLog({ userId: user.id, userName: user.name, action: 'Criou', fichaId: ficha.id })
+    saveFicha(false)
     toast.success('Ficha enviada para a Secretaria!')
     navigate('/')
   }
@@ -109,10 +131,8 @@ export default function Registro() {
   const handleOcorrenciaSubmit = () => {
     if (!ficha.clienteNome) return toast.error('Preencha o Nome do Cliente primeiro.')
     if (!occText) return toast.error('Descreva o caso.')
-
     const newOcc: Ocorrencia = { id: `occ-${Date.now()}`, descricao: occText, resolvida: false }
-    addFicha({ ...ficha, status: 'Aguardando Secretaria', ocorrencias: [newOcc], isDraft: false })
-    addAuditLog({ userId: user.id, userName: user.name, action: 'Criou', fichaId: ficha.id })
+    saveFicha(false, [newOcc])
     toast.success('Ocorrência gerada e ficha enviada para Secretaria.')
     setOccModalOpen(false)
     navigate('/')
@@ -121,7 +141,9 @@ export default function Registro() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Registro de Ficha</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {id ? 'Editar Ficha' : 'Registro de Ficha'}
+        </h1>
         <p className="text-muted-foreground mt-1">Preencha os dados da amostra recebida.</p>
       </div>
 

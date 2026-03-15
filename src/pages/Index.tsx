@@ -1,7 +1,16 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react'
+import {
+  ClipboardList,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  Search,
+  ChevronRight,
+} from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -10,6 +19,7 @@ import { format } from 'date-fns'
 export default function Index() {
   const { fichas } = useAppStore()
   const { user } = useAuthStore()
+  const [searchQuery, setSearchQuery] = useState('')
 
   const counts = {
     triagem: fichas.filter((f) => f.status === 'Em Triagem').length,
@@ -17,9 +27,19 @@ export default function Index() {
     concluida: fichas.filter((f) => f.status === 'Concluída').length,
   }
 
-  const recentFichas = [...fichas]
+  const filteredFichas = fichas.filter((f) => {
+    if (!searchQuery) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      f.id.toLowerCase().includes(q) ||
+      f.clienteNome.toLowerCase().includes(q) ||
+      (f.codigoContrato && f.codigoContrato.toLowerCase().includes(q))
+    )
+  })
+
+  const recentFichas = [...filteredFichas]
     .sort((a, b) => new Date(b.dataRecebimento).getTime() - new Date(a.dataRecebimento).getTime())
-    .slice(0, 5)
+    .slice(0, searchQuery ? undefined : 5)
 
   const canRegister = user?.role === 'Amostrador' || user?.role === 'Administrador'
   const canViewPending = user?.role === 'Secretaria' || user?.role === 'Administrador'
@@ -85,31 +105,55 @@ export default function Index() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <CardTitle>Atividade Recente</CardTitle>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por ID, Cliente ou Código..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {recentFichas.map((ficha) => (
               <div
                 key={ficha.id}
-                className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 group"
               >
                 <div className="space-y-1">
-                  <p className="font-medium text-sm">
+                  <Link
+                    to={`/registro/${ficha.id}`}
+                    className="font-medium text-sm text-foreground hover:text-primary transition-colors"
+                  >
                     Ficha {ficha.id} - {ficha.clienteNome}
-                  </p>
+                  </Link>
                   <p className="text-xs text-muted-foreground">
                     Recebido em {format(new Date(ficha.dataRecebimento), "dd/MM/yyyy 'às' HH:mm")}{' '}
                     por {ficha.responsavel}
                   </p>
                 </div>
-                <StatusBadge status={ficha.status} />
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={ficha.status} />
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Link to={`/registro/${ficha.id}`}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
             ))}
             {recentFichas.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhuma atividade recente.
+                {searchQuery ? 'Nenhum registro encontrado.' : 'Nenhuma atividade recente.'}
               </p>
             )}
           </div>
