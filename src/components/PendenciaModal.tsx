@@ -95,6 +95,26 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     toggleOcc(occId, true, resp)
   }
 
+  const handleUpdateContrato = (newCod: string) => {
+    const newItens = localFicha.itens.map((item) => {
+      const updatedItem = { ...item }
+      if (updatedItem.protocoloWeb) {
+        const match = updatedItem.protocoloWeb.match(/^P(\d+)/)
+        if (match) {
+          updatedItem.protocoloWeb = newCod ? `P${match[1]}-${newCod}` : ''
+        }
+      }
+      if (updatedItem.ordemServico) {
+        const match = updatedItem.ordemServico.match(/-(\d{1,2})$/)
+        if (match) {
+          updatedItem.ordemServico = newCod ? `${newCod}-${match[1]}` : ''
+        }
+      }
+      return updatedItem
+    })
+    setLocalFicha({ ...localFicha, codigoContrato: newCod, itens: newItens })
+  }
+
   const hasUnconfirmedTagChange = localFicha.itens.some((it) => {
     const oit = ficha?.itens.find((i) => i.id === it.id)
     const isChangedNow =
@@ -188,7 +208,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
               <Label>Código do Contrato</Label>
               <Input
                 value={localFicha.codigoContrato || ''}
-                onChange={(e) => setLocalFicha({ ...localFicha, codigoContrato: e.target.value })}
+                onChange={(e) => handleUpdateContrato(e.target.value)}
                 placeholder="Insira o contrato..."
               />
             </div>
@@ -309,7 +329,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
             )}
 
             <div className="space-y-3">
-              <Label className="text-base font-semibold">Itens e Ordens de Serviço</Label>
+              <Label className="text-base font-semibold">Acesso Rápido: Itens e OS</Label>
               <div className="border rounded-md overflow-x-auto">
                 <Table className="min-w-[500px]">
                   <TableHeader className="bg-muted/50">
@@ -355,7 +375,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
             <details className="group bg-card rounded-md border shadow-sm mt-6 [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex items-center justify-between p-4 font-semibold cursor-pointer select-none">
-                <span>Visualizar Ficha Completa</span>
+                <span>Visualizar/Editar Ficha Completa</span>
                 <span className="transition group-open:rotate-180">
                   <svg
                     fill="none"
@@ -371,15 +391,15 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                   </svg>
                 </span>
               </summary>
-              <div className="p-4 pt-0 border-t mt-2 space-y-6 opacity-80 pointer-events-none bg-muted/10 pb-6">
-                <fieldset disabled className="space-y-6">
-                  <RegistroHeader ficha={localFicha} setFicha={() => {}} />
+              <div className="p-4 pt-0 border-t mt-2 bg-muted/10 pb-6">
+                <div className="space-y-6 pt-4">
+                  <RegistroHeader ficha={localFicha} setFicha={setLocalFicha} />
                   <RegistroItens
                     itens={localFicha.itens}
-                    setItens={() => {}}
+                    setItens={(newItens) => setLocalFicha({ ...localFicha, itens: newItens })}
                     codigoContrato={localFicha.codigoContrato}
                   />
-                </fieldset>
+                </div>
               </div>
             </details>
           </div>

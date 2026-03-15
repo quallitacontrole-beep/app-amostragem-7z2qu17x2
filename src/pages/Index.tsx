@@ -128,7 +128,7 @@ export default function Index() {
     }
   }
 
-  const pendingFichasForSecretaria = dateFilteredFichas.filter(
+  const pendingFichasForSecretaria = fichas.filter(
     (f) =>
       f.status === 'Aguardando Secretaria' ||
       f.status === 'Validação Secretaria' ||
@@ -229,14 +229,14 @@ export default function Index() {
         <Card className="border-purple-500/20 bg-purple-500/5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-purple-600 truncate pr-2">
-              Validação Sec.
+              Validação Secretaria
             </CardTitle>
             <ShieldCheck className="h-4 w-4 text-purple-600 shrink-0" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">{counts.validacao}</div>
             <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
-              Fichas finalizadas pela Amostragem e enviadas à Secretaria
+              Amostragem finalizada e enviadas à Secretaria
             </p>
           </CardContent>
         </Card>
@@ -257,13 +257,13 @@ export default function Index() {
           <CardHeader className="bg-warning/5 border-b border-warning/10 pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-warning" />
-              Pendências da Secretaria no Período
+              Pendências da Secretaria
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             {pendingFichasForSecretaria.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhuma pendência encontrada para o seu setor no período selecionado.
+                Nenhuma pendência encontrada para o seu setor.
               </p>
             ) : (
               <div className="space-y-3">
