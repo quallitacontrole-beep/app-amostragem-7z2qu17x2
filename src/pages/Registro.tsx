@@ -86,8 +86,14 @@ export default function Registro() {
     }
     if (ficha.cpfCnpj) {
       const digits = ficha.cpfCnpj.replace(/\D/g, '')
-      if (digits.length <= 11 && !isValidCpf(digits)) return (toast.error('CPF inválido.'), false)
-      if (digits.length > 11 && !isValidCnpj(digits)) return (toast.error('CNPJ inválido.'), false)
+      if (digits.length <= 11 && !isValidCpf(digits)) {
+        toast.error('CPF inválido.')
+        return false
+      }
+      if (digits.length > 11 && !isValidCnpj(digits)) {
+        toast.error('CNPJ inválido.')
+        return false
+      }
     }
 
     for (const item of ficha.itens) {
@@ -110,7 +116,11 @@ export default function Registro() {
     if (ocorrencias)
       finalFicha.ocorrencias = id ? [...ficha.ocorrencias, ...ocorrencias] : ocorrencias
 
-    id ? updateFicha(finalFicha) : addFicha(finalFicha)
+    if (id) {
+      updateFicha(finalFicha)
+    } else {
+      addFicha(finalFicha)
+    }
     addAuditLog({ userId: user.id, userName: user.name, action, fichaId: ficha.id })
   }
 
@@ -129,8 +139,14 @@ export default function Registro() {
   }
 
   const handleOcorrenciaSubmit = () => {
-    if (!ficha.clienteNome) return toast.error('Preencha o Nome do Cliente primeiro.')
-    if (!occText) return toast.error('Descreva o caso.')
+    if (!ficha.clienteNome) {
+      toast.error('Preencha o Nome do Cliente primeiro.')
+      return
+    }
+    if (!occText) {
+      toast.error('Descreva o caso.')
+      return
+    }
     const newOcc: Ocorrencia = { id: `occ-${Date.now()}`, descricao: occText, resolvida: false }
     saveFicha(false, [newOcc])
     toast.success('Ocorrência gerada e ficha enviada para Secretaria.')
