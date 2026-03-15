@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label'
 
 export default function Registro() {
   const navigate = useNavigate()
-  const { addFicha } = useAppStore()
+  const { addFicha, addAuditLog } = useAppStore()
   const { user } = useAuthStore()
   const [isOccModalOpen, setOccModalOpen] = useState(false)
   const [occText, setOccText] = useState('')
@@ -45,12 +45,12 @@ export default function Registro() {
     isDraft: true,
   })
 
-  if (user?.role !== 'Amostragem') {
+  if (user?.role !== 'Amostrador' && user?.role !== 'Administrador') {
     return (
       <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
         <AlertTriangle className="h-10 w-10 text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
-        <p>Apenas usuários com perfil de Amostragem podem registrar novas fichas.</p>
+        <p>Apenas usuários com perfil de Amostrador podem registrar novas fichas.</p>
         <Button variant="outline" className="mt-6" onClick={() => navigate('/')}>
           Voltar ao Dashboard
         </Button>
@@ -60,6 +60,7 @@ export default function Registro() {
 
   const handleSaveDraft = () => {
     addFicha({ ...ficha, status: 'Em Triagem' })
+    addAuditLog({ userId: user.id, userName: user.name, action: 'Criou', fichaId: ficha.id })
     toast.success('Rascunho salvo com sucesso!')
     navigate('/')
   }
@@ -69,6 +70,7 @@ export default function Registro() {
     if (!ficha.clienteNome) return toast.error('Nome do cliente é obrigatório.')
 
     addFicha({ ...ficha, status: 'Aguardando Secretaria', isDraft: false })
+    addAuditLog({ userId: user.id, userName: user.name, action: 'Criou', fichaId: ficha.id })
     toast.success('Ficha enviada para a Secretaria!')
     navigate('/')
   }
@@ -79,13 +81,14 @@ export default function Registro() {
 
     const newOcc: Ocorrencia = { id: `occ-${Date.now()}`, descricao: occText, resolvida: false }
     addFicha({ ...ficha, status: 'Aguardando Secretaria', ocorrencias: [newOcc], isDraft: false })
+    addAuditLog({ userId: user.id, userName: user.name, action: 'Criou', fichaId: ficha.id })
     toast.success('Ocorrência gerada e ficha enviada para Secretaria.')
     setOccModalOpen(false)
     navigate('/')
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-24">
+    <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Registro de Ficha</h1>
         <p className="text-muted-foreground mt-1">Preencha os dados da amostra recebida.</p>

@@ -1,14 +1,31 @@
 import { useAppStore } from '@/stores/main'
+import { useAuthStore } from '@/stores/auth'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, ShieldAlert } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Config() {
   const { configuracoes, updateConfiguracoes } = useAppStore()
+  const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [newTipo, setNewTipo] = useState('')
+
+  if (user?.role !== 'Administrador') {
+    return (
+      <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
+        <ShieldAlert className="h-10 w-10 text-muted-foreground mb-4" />
+        <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
+        <p>Apenas Administradores podem acessar as configurações do sistema.</p>
+        <Button variant="outline" className="mt-6" onClick={() => navigate('/')}>
+          Voltar ao Dashboard
+        </Button>
+      </div>
+    )
+  }
 
   const handleAddTipo = () => {
     if (!newTipo.trim()) return

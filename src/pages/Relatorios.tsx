@@ -1,5 +1,9 @@
 import { useAppStore } from '@/stores/main'
+import { useAuthStore } from '@/stores/auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { ShieldAlert } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import {
   ChartContainer,
   ChartTooltip,
@@ -7,20 +11,25 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts'
 
 export default function Relatorios() {
   const { fichas } = useAppStore()
+  const { user } = useAuthStore()
+  const navigate = useNavigate()
+
+  if (user?.role !== 'Secretaria' && user?.role !== 'Administrador') {
+    return (
+      <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
+        <ShieldAlert className="h-10 w-10 text-muted-foreground mb-4" />
+        <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
+        <p>Apenas Secretaria e Administradores podem visualizar os relatórios.</p>
+        <Button variant="outline" className="mt-6" onClick={() => navigate('/')}>
+          Voltar ao Dashboard
+        </Button>
+      </div>
+    )
+  }
 
   // Aggregate Data for charts
   const itemsBySector: Record<string, number> = {}

@@ -45,3 +45,13 @@ export interface Configuracoes {
   tiposAmostra: string[]
   setores: string[]
 }
+
+export interface AuditLog {
+  id: string
+  userId: string
+  userName: string
+  action: 'Criou' | 'Atualizou' | 'Deletou'
+  fichaId: string
+  timestamp: string
+  details?: string
+}

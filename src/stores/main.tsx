@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
-import { Ficha, Configuracoes } from '@/types'
+import { Ficha, Configuracoes, AuditLog } from '@/types'
 
 interface AppContextData {
   fichas: Ficha[]
   configuracoes: Configuracoes
+  auditLogs: AuditLog[]
   addFicha: (ficha: Ficha) => void
   updateFicha: (ficha: Ficha) => void
   updateConfiguracoes: (config: Configuracoes) => void
+  addAuditLog: (log: Omit<AuditLog, 'id' | 'timestamp'>) => void
 }
 
 const mockFichas: Ficha[] = [
@@ -68,6 +70,17 @@ const mockFichas: Ficha[] = [
   },
 ]
 
+const mockAuditLogs: AuditLog[] = [
+  {
+    id: 'aud-1',
+    userId: 'usr-sys',
+    userName: 'Sistema',
+    action: 'Criou',
+    fichaId: 'FCH-2023-001',
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+  },
+]
+
 const defaultConfig: Configuracoes = {
   formasRecebimento: ['Correios', 'Motoboy', 'Balcão', 'Cliente', 'Coleta Quallità'],
   tiposAmostra: [
@@ -85,6 +98,7 @@ const AppContext = createContext<AppContextData>({} as AppContextData)
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [fichas, setFichas] = useState<Ficha[]>(mockFichas)
   const [configuracoes, setConfiguracoes] = useState<Configuracoes>(defaultConfig)
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(mockAuditLogs)
 
   const addFicha = (ficha: Ficha) => setFichas((prev) => [ficha, ...prev])
 
@@ -92,6 +106,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setFichas((prev) => prev.map((f) => (f.id === ficha.id ? ficha : f)))
 
   const updateConfiguracoes = (config: Configuracoes) => setConfiguracoes(config)
+
+  const addAuditLog = (log: Omit<AuditLog, 'id' | 'timestamp'>) => {
+    const newLog: AuditLog = {
+      ...log,
+      id: `aud-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+    }
+    setAuditLogs((prev) => [newLog, ...prev])
+  }
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -107,7 +130,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         console.warn('Failed to fetch remote config, using default settings.', error)
       }
     }
-
     fetchConfig()
   }, [])
 
@@ -116,9 +138,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       value={{
         fichas,
         configuracoes,
+        auditLogs,
         addFicha,
         updateFicha,
         updateConfiguracoes,
+        addAuditLog,
       }}
     >
       {children}

@@ -6,7 +6,9 @@ import {
   BarChart3,
   Settings,
   FlaskConical,
+  History,
 } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth'
 import {
   Sidebar,
   SidebarContent,
@@ -20,15 +22,39 @@ import {
 } from '@/components/ui/sidebar'
 
 const navItems = [
-  { title: 'Início', url: '/', icon: LayoutDashboard },
-  { title: 'Nova Ficha', url: '/registro', icon: FilePlus2 },
-  { title: 'Pendências', url: '/pendencias', icon: ListTodo },
-  { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
-  { title: 'Configurações', url: '/config', icon: Settings },
+  {
+    title: 'Início',
+    url: '/',
+    icon: LayoutDashboard,
+    roles: ['Administrador', 'Amostrador', 'Secretaria'],
+  },
+  {
+    title: 'Nova Ficha',
+    url: '/registro',
+    icon: FilePlus2,
+    roles: ['Administrador', 'Amostrador'],
+  },
+  {
+    title: 'Pendências',
+    url: '/pendencias',
+    icon: ListTodo,
+    roles: ['Administrador', 'Secretaria'],
+  },
+  {
+    title: 'Relatórios',
+    url: '/relatorios',
+    icon: BarChart3,
+    roles: ['Administrador', 'Secretaria'],
+  },
+  { title: 'Configurações', url: '/config', icon: Settings, roles: ['Administrador'] },
+  { title: 'Auditoria', url: '/auditoria', icon: History, roles: ['Administrador'] },
 ]
 
 export function AppSidebar() {
   const location = useLocation()
+  const { user } = useAuthStore()
+
+  const allowedNavItems = navItems.filter((item) => user && item.roles.includes(user.role))
 
   return (
     <Sidebar>
@@ -43,7 +69,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {allowedNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild

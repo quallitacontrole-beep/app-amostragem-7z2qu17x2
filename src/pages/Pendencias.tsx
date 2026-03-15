@@ -19,12 +19,12 @@ import { Ficha } from '@/types'
 import { useNavigate } from 'react-router-dom'
 
 export default function Pendencias() {
-  const { fichas, updateFicha } = useAppStore()
+  const { fichas, updateFicha, addAuditLog } = useAppStore()
   const { user } = useAuthStore()
   const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null)
   const navigate = useNavigate()
 
-  if (user?.role !== 'Secretaria') {
+  if (user?.role !== 'Secretaria' && user?.role !== 'Administrador') {
     return (
       <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
         <ShieldAlert className="h-10 w-10 text-muted-foreground mb-4" />
@@ -43,6 +43,13 @@ export default function Pendencias() {
     ocorrencias: pendentes.filter((f) => f.ocorrencias.some((o) => !o.resolvida)),
     semOS: pendentes.filter((f) => f.itens.some((i) => !i.ordemServico)),
     semContrato: pendentes.filter((f) => !f.codigoContrato),
+  }
+
+  const handleUpdateAndLog = (ficha: Ficha) => {
+    updateFicha(ficha)
+    if (user) {
+      addAuditLog({ userId: user.id, userName: user.name, action: 'Atualizou', fichaId: ficha.id })
+    }
   }
 
   const renderTable = (data: Ficha[]) => (
@@ -135,7 +142,7 @@ export default function Pendencias() {
         isOpen={!!selectedFicha}
         ficha={selectedFicha}
         onClose={() => setSelectedFicha(null)}
-        onSave={updateFicha}
+        onSave={handleUpdateAndLog}
       />
     </div>
   )

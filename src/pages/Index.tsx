@@ -21,6 +21,9 @@ export default function Index() {
     .sort((a, b) => new Date(b.dataRecebimento).getTime() - new Date(a.dataRecebimento).getTime())
     .slice(0, 5)
 
+  const canRegister = user?.role === 'Amostrador' || user?.role === 'Administrador'
+  const canViewPending = user?.role === 'Secretaria' || user?.role === 'Administrador'
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -29,13 +32,14 @@ export default function Index() {
           <p className="text-muted-foreground mt-1">Visão geral do recebimento de amostras.</p>
         </div>
         <div className="flex items-center gap-3">
-          {user?.role === 'Amostragem' ? (
+          {canRegister && (
             <Button asChild size="lg" className="shadow-md">
               <Link to="/registro">
                 Registrar Amostra <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-          ) : (
+          )}
+          {canViewPending && (
             <Button asChild size="lg" className="shadow-md" variant="secondary">
               <Link to="/pendencias">
                 Ver Pendências <ArrowRight className="ml-2 h-4 w-4" />

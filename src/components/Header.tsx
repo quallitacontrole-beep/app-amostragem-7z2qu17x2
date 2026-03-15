@@ -1,4 +1,5 @@
-import { Bell, Search, UserCircle, LogOut } from 'lucide-react'
+import { Bell, Search, UserCircle, LogOut, Settings2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useAppStore } from '@/stores/main'
@@ -12,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
 
 export function Header() {
   const { fichas } = useAppStore()
@@ -55,17 +57,26 @@ export function Header() {
               </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuContent className="w-64" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
+              <div className="flex flex-col space-y-2">
                 <p className="text-sm font-medium leading-none">{user?.name}</p>
                 <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                <Badge variant="outline" className="w-fit mt-1">
+                  {user?.role}
+                </Badge>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link to="/perfil">
+                <Settings2 className="mr-2 h-4 w-4" />
+                <span>Configurações de Perfil</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={logout}
-              className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
+              className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer mt-1"
             >
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair do sistema</span>

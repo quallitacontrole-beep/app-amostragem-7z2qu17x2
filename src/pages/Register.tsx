@@ -27,7 +27,7 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [role, setRole] = useState<Role>('Amostragem')
+  const [role, setRole] = useState<Role>('Amostrador')
   const { register } = useAuthStore()
   const navigate = useNavigate()
 
@@ -91,8 +91,9 @@ export default function Register() {
                   <SelectValue placeholder="Selecione um perfil" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Amostragem">Amostragem</SelectItem>
+                  <SelectItem value="Amostrador">Amostrador</SelectItem>
                   <SelectItem value="Secretaria">Secretaria</SelectItem>
+                  <SelectItem value="Administrador">Administrador</SelectItem>
                 </SelectContent>
               </Select>
             </div>

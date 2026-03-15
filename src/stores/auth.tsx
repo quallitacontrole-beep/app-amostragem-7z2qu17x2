@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { toast } from 'sonner'
 
-export type Role = 'Amostragem' | 'Secretaria'
+export type Role = 'Amostrador' | 'Secretaria' | 'Administrador'
 
 export interface User {
   id: string
@@ -10,12 +10,18 @@ export interface User {
   role: Role
 }
 
+interface UpdateProfileResult {
+  success: boolean
+  error?: string
+}
+
 interface AuthContextData {
   user: User | null
   isAuthenticated: boolean
   login: (email: string, pass: string) => boolean
   register: (name: string, email: string, pass: string, role: Role) => boolean
   logout: () => void
+  updateProfile: (name: string, oldPass: string, newPass: string) => UpdateProfileResult
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData)
@@ -56,6 +62,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return true
   }
 
+  const updateProfile = (name: string, oldPass: string, newPass: string): UpdateProfileResult => {
+    if (!user) return { success: false, error: 'Usuário não autenticado.' }
+    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
+    const userIndex = users.findIndex((u: any) => u.id === user.id)
+
+    if (userIndex === -1) return { success: false, error: 'Usuário não encontrado na base.' }
+
+    if (newPass) {
+      if (users[userIndex].pass !== oldPass) {
+        return { success: false, error: 'Senha atual incorreta.' }
+      }
+      users[userIndex].pass = newPass
+    }
+
+    users[userIndex].name = name
+    localStorage.setItem('app_users', JSON.stringify(users))
+    setUser({ ...user, name })
+    return { success: true }
+  }
+
   const logout = () => {
     setUser(null)
     toast.info('Sessão encerrada com sucesso.')
@@ -63,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return React.createElement(
     AuthContext.Provider,
-    { value: { user, isAuthenticated: !!user, login, register, logout } },
+    { value: { user, isAuthenticated: !!user, login, register, logout, updateProfile } },
     children,
   )
 }
