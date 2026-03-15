@@ -79,23 +79,14 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     if (!canConcluir) return toast.error('Conclua todos os itens do checklist antes de finalizar.')
     onSave({ ...localFicha, status: 'Finalizada' })
     onClose()
-    toast.success('Ficha Finalizada!')
+    toast.success('Ficha Finalizada com sucesso!')
   }
 
   const handleSaveParcial = () => {
     let up = { ...localFicha }
-    if (
-      localFicha.ocorrencias?.length > 0 &&
-      isOcorrenciasZeradas &&
-      localFicha.status === 'Aguardando Secretaria'
-    ) {
-      up.status = 'Em Triagem'
-    }
     onSave(up)
     onClose()
-    if (up.status === 'Em Triagem')
-      toast.success('Ocorrências resolvidas! Ficha retornou para Triagem.')
-    else toast.info('Alterações salvas.')
+    toast.info('Alterações salvas parcialmente.')
   }
 
   const CheckItem = ({ label, ok }: { label: string; ok: boolean }) => (
@@ -172,17 +163,19 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                   <div
                     key={occ.id}
                     className={cn(
-                      'flex flex-col gap-3 bg-background p-4 rounded border shadow-sm',
-                      occ.resolvida ? 'border-success/30' : 'border-destructive/30',
+                      'flex flex-col gap-3 bg-background p-4 rounded border shadow-sm transition-colors',
+                      occ.resolvida ? 'border-success/40' : 'border-warning/60 shadow-warning/10',
                     )}
                   >
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Descrição da Pendência
                       </Label>
-                      <p className="text-sm font-medium">{occ.descricao}</p>
+                      <div className="bg-muted/40 p-3 rounded border text-sm whitespace-pre-wrap text-foreground">
+                        {occ.descricao}
+                      </div>
                     </div>
-                    <div className="flex justify-end border-t pt-2 mt-1">
+                    <div className="flex justify-end border-t pt-3 mt-1">
                       {occ.resolvida ? (
                         <Button
                           variant="outline"
@@ -193,7 +186,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                         </Button>
                       ) : (
                         <Button
-                          className="bg-success hover:bg-success/90 text-success-foreground"
+                          className="bg-success hover:bg-success/90 text-success-foreground font-semibold shadow-sm"
                           size="sm"
                           onClick={() => toggleOcc(occ.id, true)}
                         >
@@ -260,7 +253,9 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
           <Button
             onClick={handleFinalizar}
             disabled={!canConcluir}
-            className={canConcluir ? 'bg-success hover:bg-success/90 text-success-foreground' : ''}
+            className={
+              canConcluir ? 'bg-success hover:bg-success/90 text-success-foreground shadow-md' : ''
+            }
           >
             Finalizar Ficha
           </Button>
