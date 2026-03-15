@@ -145,9 +145,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role: data.role || users[index].role,
       sector: data.sector !== undefined ? data.sector : users[index].sector,
     }
-    if (data.pass) {
+
+    if (data.pass !== undefined) {
       users[index].pass = data.pass
     }
+
     localStorage.setItem('app_users', JSON.stringify(users))
 
     if (user?.id === id) {

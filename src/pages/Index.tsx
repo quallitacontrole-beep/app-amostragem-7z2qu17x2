@@ -28,7 +28,7 @@ export default function Index() {
   const { user } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const PAGE_SIZE = 10
+  const PAGE_SIZE = 20
 
   useEffect(() => setCurrentPage(1), [searchQuery])
 
@@ -57,6 +57,7 @@ export default function Index() {
       f.id.toLowerCase().includes(q) ||
       f.clienteNome.toLowerCase().includes(q) ||
       (f.codigoContrato && f.codigoContrato.toLowerCase().includes(q)) ||
+      (f.responsavel && f.responsavel.toLowerCase().includes(q)) ||
       dateStr.includes(q) ||
       shortDate.includes(q) ||
       veryShortDate.includes(q)
@@ -140,7 +141,7 @@ export default function Index() {
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID, Cliente, Data ou Código..."
+              placeholder="Buscar por ID, Cliente, Data ou Usuário..."
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -152,10 +153,6 @@ export default function Index() {
             {paginatedFichas.map((ficha) => {
               const dataReceb = ficha.dataRecebimento
                 ? format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')
-                : ''
-              const createdAtDate = ficha.createdAt || ficha.dataRecebimento
-              const dataCriacao = createdAtDate
-                ? format(new Date(createdAtDate), "dd/MM/yyyy 'às' HH:mm")
                 : ''
 
               return (
@@ -172,8 +169,7 @@ export default function Index() {
                       {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
                     </Link>
                     <p className="text-xs text-muted-foreground">
-                      Amostra recebida em {dataReceb} | Ficha criada em {dataCriacao} por{' '}
-                      {ficha.responsavel}
+                      Recebida em {dataReceb} por {ficha.responsavel}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

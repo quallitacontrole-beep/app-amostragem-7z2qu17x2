@@ -76,7 +76,7 @@ export function UserManagement() {
       setForm({
         name: u.name,
         email: u.email,
-        pass: '',
+        pass: u.pass || '',
         role: u.role || 'Usuário',
         sector: u.sector || '',
       })
@@ -89,6 +89,7 @@ export function UserManagement() {
 
   const handleSave = () => {
     if (!form.name || !form.email) return toast.error('Nome e login são obrigatórios.')
+    if (!form.pass) return toast.error('Senha é obrigatória.')
 
     if (editingUser) {
       if (updateUser(editingUser.id, form)) {
@@ -99,7 +100,6 @@ export function UserManagement() {
         toast.error('O Login (email) pode já estar em uso.')
       }
     } else {
-      if (!form.pass) return toast.error('Senha é obrigatória.')
       if (createUser(form)) {
         toast.success('Usuário criado com sucesso.')
         setModalOpen(false)
@@ -197,13 +197,13 @@ export function UserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{editingUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha'}</Label>
+              <Label>Senha</Label>
               <div className="relative">
                 <Input
                   type={showPassword && isAdmin ? 'text' : 'password'}
                   value={form.pass}
                   onChange={(e) => setForm({ ...form, pass: e.target.value })}
-                  className="pr-10"
+                  className={isAdmin ? 'pr-10' : ''}
                 />
                 {isAdmin && (
                   <button
