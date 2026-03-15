@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
 import { Ficha, Configuracoes } from '@/types'
 
 interface AppContextData {
@@ -90,8 +90,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState('Amostragem')
 
   const addFicha = (ficha: Ficha) => setFichas((prev) => [ficha, ...prev])
+
   const updateFicha = (ficha: Ficha) =>
     setFichas((prev) => prev.map((f) => (f.id === ficha.id ? ficha : f)))
+
+  const updateConfiguracoes = (config: Configuracoes) => setConfiguracoes(config)
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('https://api.goskip.dev/v1/projects/config/public')
+        if (response.ok) {
+          const data = await response.json()
+          if (data && data.configuracoes) {
+            setConfiguracoes(data.configuracoes)
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch remote config, using default settings.', error)
+      }
+    }
+
+    fetchConfig()
+  }, [])
 
   return (
     <AppContext.Provider
