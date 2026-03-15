@@ -21,6 +21,12 @@ const getProtocoloNumber = (pw?: string) => {
   return match ? match[1] : pw.replace(/\D/g, '').slice(0, 4)
 }
 
+const getOsNumber = (os?: string) => {
+  if (!os) return ''
+  const match = os.match(/-(\d{1,2})$/)
+  return match ? match[1] : os.replace(/\D/g, '').slice(-2)
+}
+
 export function RegistroItens({
   itens,
   setItens,
@@ -266,6 +272,48 @@ export function RegistroItens({
                     value={codigoContrato || '____/____'}
                     disabled
                   />
+                </div>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label>Ordem de Serviço (OS)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    className="flex-1 bg-muted text-[13px] text-center px-1"
+                    value={codigoContrato || '____/____'}
+                    disabled
+                  />
+
+                  <span className="text-muted-foreground font-bold">-</span>
+
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex-1" tabIndex={0}>
+                          <Input
+                            className="text-[13px] text-center"
+                            placeholder="00"
+                            value={getOsNumber(item.ordemServico)}
+                            onChange={(e) => {
+                              const n = e.target.value.replace(/\D/g, '').slice(0, 2)
+                              if (!n) {
+                                handleUpdateItem(item.id, 'ordemServico', '')
+                              } else {
+                                handleUpdateItem(item.id, 'ordemServico', `${codigoContrato}-${n}`)
+                              }
+                            }}
+                            disabled={!codigoContrato}
+                            maxLength={2}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      {!codigoContrato && (
+                        <TooltipContent>
+                          <p>Preencha o Código do Contrato no cabeçalho primeiro.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
 

@@ -105,13 +105,20 @@ export function RegistroHeader({
 
   const updateContractCode = (newCod: string) => {
     const newItens = ficha.itens.map((item) => {
-      if (item.protocoloWeb) {
-        const match = item.protocoloWeb.match(/^P(\d+)/)
+      const updatedItem = { ...item }
+      if (updatedItem.protocoloWeb) {
+        const match = updatedItem.protocoloWeb.match(/^P(\d+)/)
         if (match) {
-          return { ...item, protocoloWeb: newCod ? `P${match[1]}-${newCod}` : '' }
+          updatedItem.protocoloWeb = newCod ? `P${match[1]}-${newCod}` : ''
         }
       }
-      return item
+      if (updatedItem.ordemServico) {
+        const match = updatedItem.ordemServico.match(/-(\d{1,2})$/)
+        if (match) {
+          updatedItem.ordemServico = newCod ? `${newCod}-${match[1]}` : ''
+        }
+      }
+      return updatedItem
     })
     setFicha({ ...ficha, codigoContrato: newCod, itens: newItens })
   }

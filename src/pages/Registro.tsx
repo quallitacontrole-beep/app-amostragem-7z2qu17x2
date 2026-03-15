@@ -140,6 +140,16 @@ export default function Registro() {
         }
       }
 
+      if (item.ordemServico) {
+        const parts = item.ordemServico.split('-')
+        if (parts.length < 2 || !parts[parts.length - 1]) {
+          toast.error(
+            'Ordem de Serviço incompleta. O Código do Contrato deve estar preenchido no cabeçalho.',
+          )
+          return false
+        }
+      }
+
       const isFQ = item.setorDestino === 'Físico-Químico'
       const requires1g =
         isFQ &&
