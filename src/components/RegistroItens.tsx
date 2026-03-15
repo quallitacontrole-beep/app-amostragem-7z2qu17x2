@@ -78,6 +78,13 @@ export function RegistroItens({
     )
   }
 
+  const hasFullContract = Boolean(
+    codigoContrato &&
+    codigoContrato.includes('/') &&
+    codigoContrato.split('/')[0] &&
+    codigoContrato.split('/')[1]?.length === 4,
+  )
+
   return (
     <Card className="animate-slide-down">
       <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -251,15 +258,15 @@ export function RegistroItens({
                                   )
                                 }
                               }}
-                              disabled={!codigoContrato}
+                              disabled={!hasFullContract}
                               maxLength={4}
                             />
                           </div>
                         </div>
                       </TooltipTrigger>
-                      {!codigoContrato && (
+                      {!hasFullContract && (
                         <TooltipContent>
-                          <p>Preencha o Código do Contrato no cabeçalho primeiro.</p>
+                          <p>Preencha o Código do Contrato completo no cabeçalho primeiro.</p>
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -302,14 +309,14 @@ export function RegistroItens({
                                 handleUpdateItem(item.id, 'ordemServico', `${codigoContrato}-${n}`)
                               }
                             }}
-                            disabled={!codigoContrato}
+                            disabled={!hasFullContract}
                             maxLength={2}
                           />
                         </div>
                       </TooltipTrigger>
-                      {!codigoContrato && (
+                      {!hasFullContract && (
                         <TooltipContent>
-                          <p>Preencha o Código do Contrato no cabeçalho primeiro.</p>
+                          <p>Preencha o Código do Contrato completo no cabeçalho primeiro.</p>
                         </TooltipContent>
                       )}
                     </Tooltip>

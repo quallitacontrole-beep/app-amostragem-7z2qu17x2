@@ -144,7 +144,10 @@ export function RegistroHeader({
   const codParts = (ficha.codigoContrato || '').split('/')
   const codPrefix = codParts[0] || ''
   const codYear = codParts[1] || ''
-  const isCodYearInvalid = codYear.length > 0 && codYear.length < 4
+
+  const hasAnyContractInput = codPrefix.length > 0 || codYear.length > 0
+  const isCodPrefixInvalid = hasAnyContractInput && codPrefix.length === 0
+  const isCodYearInvalid = hasAnyContractInput && codYear.length < 4
 
   const handlePrefixChange = (val: string) => {
     const p = val.replace(/\D/g, '').slice(0, 4)
@@ -259,7 +262,10 @@ export function RegistroHeader({
               value={codPrefix}
               onChange={(e) => handlePrefixChange(e.target.value)}
               placeholder="0000"
-              className="w-16 text-center tracking-widest text-[13px]"
+              className={cn(
+                'w-16 text-center tracking-widest text-[13px]',
+                isCodPrefixInvalid && 'border-destructive focus-visible:ring-destructive',
+              )}
               maxLength={4}
             />
             <span className="text-muted-foreground font-bold">/</span>
@@ -274,7 +280,12 @@ export function RegistroHeader({
               maxLength={4}
             />
           </div>
-          {isCodYearInvalid && (
+          {isCodPrefixInvalid && (
+            <p className="text-[10px] text-destructive absolute -bottom-4 left-0">
+              Prefixo obrigatório
+            </p>
+          )}
+          {isCodYearInvalid && !isCodPrefixInvalid && (
             <p className="text-[10px] text-destructive absolute -bottom-4 left-0">
               O sufixo deve ter 4 dígitos
             </p>

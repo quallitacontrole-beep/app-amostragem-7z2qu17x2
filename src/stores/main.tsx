@@ -55,7 +55,7 @@ const mockFichas: Ficha[] = [
     clienteNome: 'Indústria BioMed',
     cpfCnpj: '61.585.865/0001-51',
     cidadeUf: 'Campinas-SP',
-    codigoContrato: 'CT-9921',
+    codigoContrato: `1234/${currentYear}`,
     status: 'Em Triagem',
     ocorrencias: [],
     itens: [
@@ -134,16 +134,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const parsed = JSON.parse(stored)
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.map((f: any) => {
-            // Migrate legacy data safely
             let safeStatus = f.status === 'Concluída' ? 'Resolvida' : f.status
 
-            // Programmatic Validation: Ensure FR-2026-01 (or current year) integrity is maintained if fully resolved
-            if (f.id === `FR-2026-01` && safeStatus === 'Aguardando Secretaria') {
-              const allOccsResolved = f.ocorrencias?.every((o: any) => o.resolvida) ?? true
-              const allItemsHaveOS =
-                f.itens?.length > 0 &&
-                f.itens.every((i: any) => i.ordemServico && i.ordemServico.trim() !== '')
-              if (allOccsResolved && allItemsHaveOS) {
+            const hasFullContract = Boolean(
+              f.codigoContrato &&
+              typeof f.codigoContrato === 'string' &&
+              f.codigoContrato.includes('/') &&
+              f.codigoContrato.split('/')[0] &&
+              f.codigoContrato.split('/')[1]?.length === 4,
+            )
+
+            const allOccsResolved = f.ocorrencias?.every((o: any) => o.resolvida) ?? true
+            const allItemsHaveValidOS =
+              f.itens?.length > 0 &&
+              f.itens.every(
+                (i: any) =>
+                  i.ordemServico &&
+                  i.ordemServico.trim() !== '' &&
+                  typeof i.ordemServico === 'string' &&
+                  i.ordemServico.includes('-'),
+              )
+
+            if (safeStatus === 'Resolvida') {
+              if (!hasFullContract || !allOccsResolved || !allItemsHaveValidOS) {
+                safeStatus = 'Aguardando Secretaria'
+              }
+            } else if (safeStatus === 'Aguardando Secretaria') {
+              if (hasFullContract && allOccsResolved && allItemsHaveValidOS) {
                 safeStatus = 'Resolvida'
               }
             }
@@ -155,10 +172,40 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.warn('Failed to load fichas from storage', error)
     }
-    return mockFichas.map((f) => ({
-      ...f,
-      status: f.status === ('Concluída' as any) ? 'Resolvida' : f.status,
-    })) as Ficha[]
+    return mockFichas.map((f) => {
+      let safeStatus = f.status === ('Concluída' as any) ? 'Resolvida' : f.status
+
+      const hasFullContract = Boolean(
+        f.codigoContrato &&
+        typeof f.codigoContrato === 'string' &&
+        f.codigoContrato.includes('/') &&
+        f.codigoContrato.split('/')[0] &&
+        f.codigoContrato.split('/')[1]?.length === 4,
+      )
+
+      const allOccsResolved = f.ocorrencias?.every((o: any) => o.resolvida) ?? true
+      const allItemsHaveValidOS =
+        f.itens?.length > 0 &&
+        f.itens.every(
+          (i: any) =>
+            i.ordemServico &&
+            i.ordemServico.trim() !== '' &&
+            typeof i.ordemServico === 'string' &&
+            i.ordemServico.includes('-'),
+        )
+
+      if (safeStatus === 'Resolvida') {
+        if (!hasFullContract || !allOccsResolved || !allItemsHaveValidOS) {
+          safeStatus = 'Aguardando Secretaria'
+        }
+      } else if (safeStatus === 'Aguardando Secretaria') {
+        if (hasFullContract && allOccsResolved && allItemsHaveValidOS) {
+          safeStatus = 'Resolvida'
+        }
+      }
+
+      return { ...f, status: safeStatus }
+    }) as Ficha[]
   })
 
   const [configuracoes, setConfiguracoes] = useState<Configuracoes>(defaultConfig)

@@ -115,18 +115,27 @@ export default function Registro() {
       }
     }
 
-    if (!isDraftSave && !ficha.codigoContrato) {
-      toast.error('O Código do Contrato é obrigatório para enviar à Secretaria.')
-      return false
-    }
-
     if (ficha.codigoContrato) {
       const parts = ficha.codigoContrato.split('/')
+      const prefix = parts[0] || ''
       const suffix = parts[1] || ''
-      if (suffix.length !== 4) {
+      if (prefix && !suffix) {
+        toast.error('O Código do Contrato está incompleto. Preencha o sufixo (ano).')
+        return false
+      }
+      if (!prefix && suffix) {
+        toast.error('O Código do Contrato está incompleto. Preencha o prefixo (número).')
+        return false
+      }
+      if (suffix && suffix.length !== 4) {
         toast.error('O sufixo do Código do Contrato deve conter exatamente 4 dígitos.')
         return false
       }
+    }
+
+    if (!isDraftSave && !ficha.codigoContrato) {
+      toast.error('O Código do Contrato é obrigatório para enviar à Secretaria.')
+      return false
     }
 
     for (const item of ficha.itens) {
@@ -166,11 +175,36 @@ export default function Registro() {
     const action = id ? 'Atualizou' : 'Criou'
     let status: Ficha['status'] = isDraftSave ? 'Em Triagem' : 'Aguardando Secretaria'
 
-    // Check to prevent overwriting a resolved status
-    if (ficha.status === 'Resolvida' && !isDraftSave) {
-      status = 'Resolvida'
-    } else if (user?.sector === 'Secretaria' && ficha.status) {
+    if (user?.sector === 'Secretaria' && ficha.status) {
       status = ficha.status
+    }
+
+    const hasFullContract = Boolean(
+      ficha.codigoContrato &&
+      ficha.codigoContrato.includes('/') &&
+      ficha.codigoContrato.split('/')[0] &&
+      ficha.codigoContrato.split('/')[1]?.length === 4,
+    )
+
+    const allItemsHaveValidOS =
+      ficha.itens.length > 0 &&
+      ficha.itens.every((i) => i.ordemServico && i.ordemServico.includes('-'))
+
+    const occs = ocorrencias
+      ? id
+        ? [...ficha.ocorrencias, ...ocorrencias]
+        : ocorrencias
+      : ficha.ocorrencias
+    const allOccsResolved = occs?.every((o) => o.resolvida) ?? true
+
+    if (status === 'Resolvida') {
+      if (!hasFullContract || !allItemsHaveValidOS || !allOccsResolved) {
+        status = 'Aguardando Secretaria'
+      }
+    } else if (status === 'Aguardando Secretaria') {
+      if (hasFullContract && allItemsHaveValidOS && allOccsResolved) {
+        status = 'Resolvida'
+      }
     }
 
     const finalFicha = { ...ficha, status, isDraft: isDraftSave }
