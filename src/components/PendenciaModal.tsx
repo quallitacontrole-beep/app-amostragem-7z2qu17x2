@@ -1,0 +1,178 @@
+import { useState, useEffect } from 'react'
+import { Ficha, AmostraItem } from '@/types'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Switch } from '@/components/ui/switch'
+import { toast } from 'sonner'
+import { ScrollArea } from '@/components/ui/scroll-area'
+
+interface Props {
+  ficha: Ficha | null
+  isOpen: boolean
+  onClose: () => void
+  onSave: (f: Ficha) => void
+}
+
+export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
+  const [localFicha, setLocalFicha] = useState<Ficha | null>(null)
+
+  useEffect(() => {
+    if (ficha && isOpen) setLocalFicha(JSON.parse(JSON.stringify(ficha)))
+  }, [ficha, isOpen])
+
+  if (!localFicha) return null
+
+  const updateItem = (id: string, field: keyof AmostraItem, value: string) => {
+    setLocalFicha({
+      ...localFicha,
+      itens: localFicha.itens.map((it) => (it.id === id ? { ...it, [field]: value } : it)),
+    })
+  }
+
+  const toggleOcorrencia = (id: string, resolvida: boolean) => {
+    setLocalFicha({
+      ...localFicha,
+      ocorrencias: localFicha.ocorrencias.map((o) => (o.id === id ? { ...o, resolvida } : o)),
+    })
+  }
+
+  const canConcluir = () => {
+    const allItemsHaveOS = localFicha.itens.every(
+      (it) => it.ordemServico && it.ordemServico.trim() !== '',
+    )
+    const allOccsResolved = localFicha.ocorrencias.every((o) => o.resolvida)
+    return allItemsHaveOS && allOccsResolved
+  }
+
+  const handleConcluir = () => {
+    if (!canConcluir()) return toast.error('Resolva ocorrências e insira OS para todos os itens.')
+    onSave({ ...localFicha, status: 'Concluída' })
+    onClose()
+    toast.success('Ficha Concluída!')
+  }
+
+  const handleSaveParcial = () => {
+    onSave(localFicha)
+    onClose()
+    toast.info('Alterações salvas.')
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Tratar Pendências - {localFicha.id}</DialogTitle>
+          <DialogDescription>Cliente: {localFicha.clienteNome}</DialogDescription>
+        </DialogHeader>
+
+        <ScrollArea className="flex-1 pr-4">
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Código do Contrato</Label>
+                <Input
+                  value={localFicha.codigoContrato || ''}
+                  onChange={(e) => setLocalFicha({ ...localFicha, codigoContrato: e.target.value })}
+                  placeholder="Insira o contrato..."
+                />
+              </div>
+            </div>
+
+            {localFicha.ocorrencias.length > 0 && (
+              <div className="space-y-3 bg-destructive/5 p-4 rounded-md border border-destructive/20">
+                <Label className="text-destructive font-bold text-base">Ocorrências</Label>
+                {localFicha.ocorrencias.map((occ) => (
+                  <div
+                    key={occ.id}
+                    className="flex items-center justify-between bg-background p-3 rounded border"
+                  >
+                    <span className="text-sm">{occ.descricao}</span>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">Resolvida?</Label>
+                      <Switch
+                        checked={occ.resolvida}
+                        onCheckedChange={(v) => toggleOcorrencia(occ.id, v)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Itens e Ordens de Serviço</Label>
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead>Amostra</TableHead>
+                      <TableHead>Protocolo Web</TableHead>
+                      <TableHead>Ordem de Serviço (OS)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {localFicha.itens.map((it, i) => (
+                      <TableRow key={it.id}>
+                        <TableCell className="font-medium">
+                          {it.descricao || `Item ${i + 1}`}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8 text-sm"
+                            value={it.protocoloWeb || ''}
+                            onChange={(e) => updateItem(it.id, 'protocoloWeb', e.target.value)}
+                            placeholder="Opcional"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8 text-sm border-warning focus-visible:ring-warning"
+                            value={it.ordemServico || ''}
+                            onChange={(e) => updateItem(it.id, 'ordemServico', e.target.value)}
+                            placeholder="Obrigatório"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="mt-4 pt-4 border-t">
+          <Button variant="outline" onClick={handleSaveParcial}>
+            Salvar Parcial
+          </Button>
+          <Button
+            onClick={handleConcluir}
+            disabled={!canConcluir()}
+            className={
+              canConcluir() ? 'bg-success hover:bg-success/90 text-success-foreground' : ''
+            }
+          >
+            Concluir Ficha
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
