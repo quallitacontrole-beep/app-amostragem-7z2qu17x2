@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
 import { Ficha, Configuracoes, AuditLog } from '@/types'
+import { ALL_CITIES } from '@/lib/cidades'
 
 interface AppContextData {
   fichas: Ficha[]
@@ -90,14 +91,7 @@ const defaultConfig: Configuracoes = {
     'Alimento',
   ],
   setores: ['Amostragem', 'Secretaria', 'Físico-Químico', 'Microbiologia', 'Estabilidade'],
-  cidadesEstados: [
-    'Barbacena-MG',
-    'Barcarena-PA',
-    'Belo Horizonte-MG',
-    'Campinas-SP',
-    'Rio de Janeiro-RJ',
-    'São Paulo-SP',
-  ],
+  cidadesEstados: ALL_CITIES,
 }
 
 const AppContext = createContext<AppContextData>({} as AppContextData)
@@ -130,7 +124,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (response.ok) {
           const data = await response.json()
           if (data && data.configuracoes) {
-            setConfiguracoes({ ...defaultConfig, ...data.configuracoes })
+            const remoteConfig = data.configuracoes
+            // Prevent remote config from overriding the full cities database with a default tiny list
+            if (remoteConfig.cidadesEstados && remoteConfig.cidadesEstados.length < 100) {
+              delete remoteConfig.cidadesEstados
+            }
+            setConfiguracoes({ ...defaultConfig, ...remoteConfig })
           }
         }
       } catch (error) {

@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export const removeAccents = (str: string) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
 export const isValidCpf = (cpf: string) => {
   cpf = cpf.replace(/\D/g, '')
   if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false

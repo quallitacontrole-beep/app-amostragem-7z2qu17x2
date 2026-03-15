@@ -13,7 +13,7 @@ import { useAppStore } from '@/stores/main'
 import { format } from 'date-fns'
 import { useState, useRef, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
-import { formatCpfCnpj, isValidCpf, isValidCnpj } from '@/lib/utils'
+import { formatCpfCnpj, isValidCpf, isValidCnpj, removeAccents } from '@/lib/utils'
 
 function CityUfAutocomplete({
   value,
@@ -42,7 +42,11 @@ function CityUfAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const filtered = options.filter((o) => o.toLowerCase().includes(search.toLowerCase())).sort()
+  const searchLower = removeAccents(search.toLowerCase())
+  const filtered = options
+    .filter((o) => removeAccents(o.toLowerCase()).includes(searchLower))
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, 50)
 
   return (
     <div className="relative w-full" ref={wrapperRef}>
@@ -57,11 +61,11 @@ function CityUfAutocomplete({
         placeholder="Ex: São Paulo-SP"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-48 overflow-auto rounded-md border bg-popover shadow-md">
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-md py-1 animate-in fade-in zoom-in-95">
           {filtered.map((opt) => (
             <div
               key={opt}
-              className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+              className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
               onClick={() => {
                 setSearch(opt)
                 onChange(opt)
@@ -71,6 +75,11 @@ function CityUfAutocomplete({
               {opt}
             </div>
           ))}
+          {options.length > 0 && filtered.length === 50 && (
+            <div className="px-3 py-2 text-xs text-muted-foreground text-center italic border-t mt-1 bg-muted/30">
+              Mais resultados disponíveis... Refine a busca.
+            </div>
+          )}
         </div>
       )}
     </div>
