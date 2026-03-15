@@ -5,27 +5,15 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
-import { Plus, X, ShieldAlert } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Plus, X } from 'lucide-react'
+import { UserManagement } from '@/components/UserManagement'
 
 export default function Config() {
   const { configuracoes, updateConfiguracoes } = useAppStore()
   const { user } = useAuthStore()
-  const navigate = useNavigate()
   const [newTipo, setNewTipo] = useState('')
 
-  if (user?.role !== 'Administrador') {
-    return (
-      <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
-        <ShieldAlert className="h-10 w-10 text-muted-foreground mb-4" />
-        <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
-        <p>Apenas Administradores podem acessar as configurações do sistema.</p>
-        <Button variant="outline" className="mt-6" onClick={() => navigate('/')}>
-          Voltar ao Dashboard
-        </Button>
-      </div>
-    )
-  }
+  const isAdmin = user?.role === 'Administrador'
 
   const handleAddTipo = () => {
     if (!newTipo.trim()) return
@@ -44,66 +32,73 @@ export default function Config() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl">
+    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto pb-12">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground mt-1">Gerencie as listas de apoio do sistema.</p>
+        <p className="text-muted-foreground mt-1">Gerencie os parâmetros e acessos do sistema.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tipos de Amostra</CardTitle>
-          <CardDescription>Gerencie os tipos disponíveis no registro de itens.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2 max-w-sm">
-            <Input
-              placeholder="Novo tipo..."
-              value={newTipo}
-              onChange={(e) => setNewTipo(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddTipo()}
-            />
-            <Button onClick={handleAddTipo} size="icon">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2 mt-4">
-            {configuracoes.tiposAmostra.map((tipo) => (
-              <Badge
-                key={tipo}
-                variant="secondary"
-                className="px-3 py-1 text-sm flex items-center gap-1"
-              >
-                {tipo}
-                <button
-                  onClick={() => handleRemoveTipo(tipo)}
-                  className="text-muted-foreground hover:text-destructive ml-1"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <UserManagement />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Formas de Recebimento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {configuracoes.formasRecebimento.map((f) => (
-              <Badge key={f} variant="outline" className="px-3 py-1 bg-muted/50">
-                {f}
-              </Badge>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground mt-4 italic">
-            Editável em futuras atualizações.
-          </p>
-        </CardContent>
-      </Card>
+      {isAdmin && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tipos de Amostra</CardTitle>
+              <CardDescription>Gerencie os tipos disponíveis no registro de itens.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Novo tipo..."
+                  value={newTipo}
+                  onChange={(e) => setNewTipo(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddTipo()}
+                />
+                <Button onClick={handleAddTipo} size="icon" className="shrink-0">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                {configuracoes.tiposAmostra.map((tipo) => (
+                  <Badge
+                    key={tipo}
+                    variant="secondary"
+                    className="px-3 py-1 text-sm flex items-center gap-1"
+                  >
+                    {tipo}
+                    <button
+                      onClick={() => handleRemoveTipo(tipo)}
+                      className="text-muted-foreground hover:text-destructive ml-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Formas de Recebimento</CardTitle>
+              <CardDescription>Maneiras pelas quais as amostras chegam ao local.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {configuracoes.formasRecebimento.map((f) => (
+                  <Badge key={f} variant="outline" className="px-3 py-1 bg-muted/50">
+                    {f}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-4 italic">
+                Editável em futuras atualizações.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

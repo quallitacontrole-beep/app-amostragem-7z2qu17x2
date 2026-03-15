@@ -8,6 +8,7 @@ export interface User {
   name: string
   email: string
   role: Role
+  sector?: string
 }
 
 interface UpdateProfileResult {
@@ -22,6 +23,10 @@ interface AuthContextData {
   register: (name: string, email: string, pass: string, role: Role) => boolean
   logout: () => void
   updateProfile: (name: string, oldPass: string, newPass: string) => UpdateProfileResult
+  getAllUsers: () => any[]
+  createUser: (data: any) => boolean
+  updateUser: (id: string, data: any) => boolean
+  deleteUser: (id: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData)
@@ -43,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: 'andre.vale',
         pass: 'abc321',
         role: 'Administrador',
+        sector: 'Diretoria',
       })
       localStorage.setItem('app_users', JSON.stringify(users))
     }
@@ -60,7 +66,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const users = JSON.parse(localStorage.getItem('app_users') || '[]')
     const found = users.find((u: any) => u.email === email && u.pass === pass)
     if (found) {
-      setUser({ id: found.id, name: found.name, email: found.email, role: found.role })
+      setUser({
+        id: found.id,
+        name: found.name,
+        email: found.email,
+        role: found.role,
+        sector: found.sector,
+      })
       return true
     }
     return false
@@ -98,6 +110,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { success: true }
   }
 
+  const getAllUsers = () => {
+    return JSON.parse(localStorage.getItem('app_users') || '[]')
+  }
+
+  const createUser = (data: any) => {
+    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
+    if (users.find((u: any) => u.email === data.email)) return false
+    const newUser = { id: Date.now().toString(), ...data }
+    users.push(newUser)
+    localStorage.setItem('app_users', JSON.stringify(users))
+    return true
+  }
+
+  const updateUser = (id: string, data: any) => {
+    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
+    const index = users.findIndex((u: any) => u.id === id)
+    if (index === -1) return false
+
+    if (data.email !== users[index].email && users.find((u: any) => u.email === data.email)) {
+      return false
+    }
+
+    users[index] = {
+      ...users[index],
+      name: data.name,
+      email: data.email,
+      role: data.role || users[index].role,
+      sector: data.sector !== undefined ? data.sector : users[index].sector,
+    }
+    if (data.pass) {
+      users[index].pass = data.pass
+    }
+    localStorage.setItem('app_users', JSON.stringify(users))
+
+    if (user?.id === id) {
+      setUser({
+        id: users[index].id,
+        name: users[index].name,
+        email: users[index].email,
+        role: users[index].role,
+        sector: users[index].sector,
+      })
+    }
+
+    return true
+  }
+
+  const deleteUser = (id: string) => {
+    let users = JSON.parse(localStorage.getItem('app_users') || '[]')
+    users = users.filter((u: any) => u.id !== id)
+    localStorage.setItem('app_users', JSON.stringify(users))
+    return true
+  }
+
   const logout = () => {
     setUser(null)
     toast.info('Sessão encerrada com sucesso.')
@@ -105,7 +171,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return React.createElement(
     AuthContext.Provider,
-    { value: { user, isAuthenticated: !!user, login, register, logout, updateProfile } },
+    {
+      value: {
+        user,
+        isAuthenticated: !!user,
+        login,
+        register,
+        logout,
+        updateProfile,
+        getAllUsers,
+        createUser,
+        updateUser,
+        deleteUser,
+      },
+    },
     children,
   )
 }

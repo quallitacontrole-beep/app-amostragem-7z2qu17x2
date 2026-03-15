@@ -46,8 +46,18 @@ const navItems = [
     icon: BarChart3,
     roles: ['Administrador', 'Secretaria'],
   },
-  { title: 'Configurações', url: '/config', icon: Settings, roles: ['Administrador'] },
-  { title: 'Auditoria', url: '/auditoria', icon: History, roles: ['Administrador'] },
+  {
+    title: 'Configurações',
+    url: '/config',
+    icon: Settings,
+    roles: ['Administrador', 'Amostrador', 'Secretaria'],
+  },
+  {
+    title: 'Auditoria',
+    url: '/auditoria',
+    icon: History,
+    roles: ['Administrador'],
+  },
 ]
 
 export function AppSidebar() {
