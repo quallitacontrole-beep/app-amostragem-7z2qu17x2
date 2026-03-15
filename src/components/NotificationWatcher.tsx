@@ -19,22 +19,19 @@ export function NotificationWatcher() {
     if (!user) return
     const userNameFormatted = formatName(user.name)
 
-    const unread = notifications.filter(
-      (n) => !n.read && (n.userId === user.name || n.userId === userNameFormatted),
+    // Tag change notifications are persistent and handled in the Dashboard UI directly.
+    const unreadInfo = notifications.filter(
+      (n) =>
+        !n.read &&
+        n.type !== 'tag_change' &&
+        (n.userId === user.name || n.userId === userNameFormatted),
     )
 
-    unread.forEach((n) => {
-      if (n.type === 'tag_change') {
-        toast.warning('Ação Necessária: Troca de Etiqueta', {
-          description: n.message,
-          duration: 15000,
-        })
-      } else {
-        toast.info('Nova Mensagem da Secretaria', {
-          description: n.message,
-          duration: 10000,
-        })
-      }
+    unreadInfo.forEach((n) => {
+      toast.info('Nova Mensagem da Secretaria', {
+        description: n.message,
+        duration: 10000,
+      })
       markNotificationAsRead(n.id)
     })
   }, [notifications, user, markNotificationAsRead])

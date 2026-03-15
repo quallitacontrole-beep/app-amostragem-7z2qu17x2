@@ -1,4 +1,4 @@
-/* Checkbox Component primitives - A component that displays a checkbox - from shadcn/ui (exposes Checkbox, CheckboxIndicator) */
+/* Checkbox Component primitives - A component that displays a checkbox - from shadcn/ui (exposes Checkbox) */
 import * as React from 'react'
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
 import { Check } from 'lucide-react'
@@ -18,7 +18,7 @@ const Checkbox = React.forwardRef<
     {...props}
   >
     <CheckboxPrimitive.Indicator className={cn('flex items-center justify-center text-current')}>
-      <Check className="h-4 w-4" />
+      <Check className="h-3.5 w-3.5" />
     </CheckboxPrimitive.Indicator>
   </CheckboxPrimitive.Root>
 ))

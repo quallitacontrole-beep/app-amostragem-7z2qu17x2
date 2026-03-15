@@ -10,6 +10,7 @@ import {
   FileEdit,
   ShieldCheck,
   Calendar as CalendarIcon,
+  ShieldAlert,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,13 +28,21 @@ import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
 import { StatusBadge } from '@/components/StatusBadge'
 import { PendenciaModal } from '@/components/PendenciaModal'
-import { Ficha } from '@/types'
+import { Ficha, AppNotification } from '@/types'
 import { format } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { cn } from '@/lib/utils'
 
+const formatName = (name: string) => {
+  if (!name) return ''
+  return name
+    .split(/[.\-_]/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}
+
 export default function Index() {
-  const { fichas, updateFicha, addAuditLog } = useAppStore()
+  const { fichas, updateFicha, addAuditLog, notifications, markNotificationAsRead } = useAppStore()
   const { user } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -135,6 +144,23 @@ export default function Index() {
       f.status === 'Aguardando Validação',
   )
 
+  const userNameFormatted = user?.name ? formatName(user.name) : ''
+  const myAlerts = notifications.filter(
+    (n) =>
+      !n.read &&
+      n.type === 'tag_change' &&
+      (n.userId === user?.name || n.userId === userNameFormatted || n.userId === user?.id),
+  )
+
+  const groupedAlerts = myAlerts.reduce(
+    (acc, alert) => {
+      if (!acc[alert.fichaId]) acc[alert.fichaId] = []
+      acc[alert.fichaId].push(alert)
+      return acc
+    },
+    {} as Record<string, AppNotification[]>,
+  )
+
   return (
     <div className="space-y-8 animate-fade-in pb-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -200,6 +226,45 @@ export default function Index() {
           </div>
         </div>
       </div>
+
+      {Object.entries(groupedAlerts).length > 0 && (
+        <div className="space-y-4 animate-fade-in-down">
+          <h2 className="text-lg font-semibold flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            Alertas de Troca de Etiqueta (Ações Necessárias)
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Object.entries(groupedAlerts).map(([fichaId, alerts]) => (
+              <Card
+                key={fichaId}
+                className="border-destructive/40 shadow-sm bg-destructive/5 overflow-hidden"
+              >
+                <CardHeader className="pb-3 pt-4 px-4 flex flex-row items-center justify-between border-b border-destructive/10 bg-destructive/10">
+                  <CardTitle className="text-base text-destructive flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4" /> Ficha {fichaId}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 flex flex-col justify-between gap-4 h-[calc(100%-53px)]">
+                  <ul className="list-disc list-inside text-sm text-destructive/90 space-y-1.5 flex-1">
+                    {alerts.map((a) => (
+                      <li key={a.id} className="leading-snug">
+                        {a.message}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    size="sm"
+                    className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
+                    onClick={() => alerts.forEach((a) => markNotificationAsRead(a.id))}
+                  >
+                    Confirmar Atualização de Etiquetas
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-primary/20 bg-primary/5">
