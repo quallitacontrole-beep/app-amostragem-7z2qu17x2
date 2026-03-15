@@ -134,7 +134,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const parsed = JSON.parse(stored)
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.map((f: any) => {
-            let safeStatus = f.status === 'Concluída' ? 'Resolvida' : f.status
+            let safeStatus =
+              f.status === 'Concluída' || f.status === 'Resolvida' ? 'Finalizada' : f.status
+
+            if (safeStatus === 'Finalizada' && f.vistoSecretaria === undefined) {
+              f.vistoSecretaria = true
+            }
 
             const hasFullContract = Boolean(
               f.codigoContrato &&
@@ -155,13 +160,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                   i.ordemServico.includes('-'),
               )
 
-            if (safeStatus === 'Resolvida') {
-              if (!hasFullContract || !allOccsResolved || !allItemsHaveValidOS) {
+            if (safeStatus === 'Finalizada') {
+              if (
+                !hasFullContract ||
+                !allOccsResolved ||
+                !allItemsHaveValidOS ||
+                !f.vistoSecretaria
+              ) {
                 safeStatus = 'Aguardando Secretaria'
               }
             } else if (safeStatus === 'Aguardando Secretaria') {
-              if (hasFullContract && allOccsResolved && allItemsHaveValidOS) {
-                safeStatus = 'Resolvida'
+              if (hasFullContract && allOccsResolved && allItemsHaveValidOS && f.vistoSecretaria) {
+                safeStatus = 'Finalizada'
               }
             }
 
@@ -173,7 +183,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       console.warn('Failed to load fichas from storage', error)
     }
     return mockFichas.map((f) => {
-      let safeStatus = f.status === ('Concluída' as any) ? 'Resolvida' : f.status
+      let safeStatus =
+        f.status === ('Concluída' as any) || f.status === ('Resolvida' as any)
+          ? 'Finalizada'
+          : f.status
+
+      if (safeStatus === 'Finalizada' && f.vistoSecretaria === undefined) {
+        f.vistoSecretaria = true
+      }
 
       const hasFullContract = Boolean(
         f.codigoContrato &&
@@ -194,13 +211,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             i.ordemServico.includes('-'),
         )
 
-      if (safeStatus === 'Resolvida') {
-        if (!hasFullContract || !allOccsResolved || !allItemsHaveValidOS) {
+      if (safeStatus === 'Finalizada') {
+        if (!hasFullContract || !allOccsResolved || !allItemsHaveValidOS || !f.vistoSecretaria) {
           safeStatus = 'Aguardando Secretaria'
         }
       } else if (safeStatus === 'Aguardando Secretaria') {
-        if (hasFullContract && allOccsResolved && allItemsHaveValidOS) {
-          safeStatus = 'Resolvida'
+        if (hasFullContract && allOccsResolved && allItemsHaveValidOS && f.vistoSecretaria) {
+          safeStatus = 'Finalizada'
         }
       }
 

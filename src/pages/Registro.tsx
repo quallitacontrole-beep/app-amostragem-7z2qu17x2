@@ -176,7 +176,7 @@ export default function Registro() {
     let status: Ficha['status'] = isDraftSave ? 'Em Triagem' : 'Aguardando Secretaria'
 
     if (user?.sector === 'Secretaria' && ficha.status) {
-      status = ficha.status
+      status = (ficha.status as any) === 'Resolvida' ? 'Finalizada' : ficha.status
     }
 
     const hasFullContract = Boolean(
@@ -197,13 +197,13 @@ export default function Registro() {
       : ficha.ocorrencias
     const allOccsResolved = occs?.every((o) => o.resolvida) ?? true
 
-    if (status === 'Resolvida') {
-      if (!hasFullContract || !allItemsHaveValidOS || !allOccsResolved) {
+    if (status === 'Finalizada') {
+      if (!hasFullContract || !allItemsHaveValidOS || !allOccsResolved || !ficha.vistoSecretaria) {
         status = 'Aguardando Secretaria'
       }
     } else if (status === 'Aguardando Secretaria') {
-      if (hasFullContract && allItemsHaveValidOS && allOccsResolved) {
-        status = 'Resolvida'
+      if (hasFullContract && allItemsHaveValidOS && allOccsResolved && ficha.vistoSecretaria) {
+        status = 'Finalizada'
       }
     }
 

@@ -1,4 +1,4 @@
-export type StatusFicha = 'Em Triagem' | 'Aguardando Secretaria' | 'Resolvida'
+export type StatusFicha = 'Em Triagem' | 'Aguardando Secretaria' | 'Finalizada'
 
 export interface Ocorrencia {
   id: string
@@ -38,6 +38,7 @@ export interface Ficha {
   status: StatusFicha
   ocorrencias: Ocorrencia[]
   isDraft?: boolean
+  vistoSecretaria?: boolean
 }
 
 export interface Configuracoes {

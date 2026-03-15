@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Ficha, AmostraItem } from '@/types'
+import { useAuthStore } from '@/stores/auth'
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react'
 
 interface Props {
   ficha: Ficha | null
@@ -31,6 +33,7 @@ interface Props {
 }
 
 export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
+  const { user } = useAuthStore()
   const [localFicha, setLocalFicha] = useState<Ficha | null>(null)
 
   useEffect(() => {
@@ -38,6 +41,8 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   }, [ficha, isOpen])
 
   if (!localFicha) return null
+
+  const isSecretaria = user?.sector === 'Secretaria' || user?.role === 'Administrador'
 
   const updateItem = (id: string, field: keyof AmostraItem, value: string) => {
     setLocalFicha({
@@ -53,19 +58,27 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     })
   }
 
-  const canConcluir = () => {
-    const allItemsHaveOS = localFicha.itens.every(
-      (it) => it.ordemServico && it.ordemServico.trim() !== '',
-    )
-    const allOccsResolved = localFicha.ocorrencias.every((o) => o.resolvida)
-    return allItemsHaveOS && allOccsResolved
-  }
+  const isContratoValidado = Boolean(
+    localFicha.codigoContrato &&
+    localFicha.codigoContrato.includes('/') &&
+    localFicha.codigoContrato.split('/')[0] &&
+    localFicha.codigoContrato.split('/')[1]?.length === 4,
+  )
+  const isOsVinculado =
+    localFicha.itens.length > 0 &&
+    localFicha.itens.every((it) => it.ordemServico && it.ordemServico.includes('-'))
+  const isOcorrenciasZeradas = localFicha.ocorrencias.every((o) => o.resolvida)
+  const isVistoSecretaria = !!localFicha.vistoSecretaria
 
-  const handleResolver = () => {
-    if (!canConcluir()) return toast.error('Resolva ocorrências e insira OS para todos os itens.')
-    onSave({ ...localFicha, status: 'Resolvida' })
+  const canConcluir = () =>
+    isContratoValidado && isOsVinculado && isOcorrenciasZeradas && isVistoSecretaria
+
+  const handleFinalizar = () => {
+    if (!canConcluir())
+      return toast.error('Conclua todos os itens do checklist antes de finalizar.')
+    onSave({ ...localFicha, status: 'Finalizada' })
     onClose()
-    toast.success('Ficha Resolvida!')
+    toast.success('Ficha Finalizada!')
   }
 
   const handleSaveParcial = () => {
@@ -87,6 +100,17 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     }
   }
 
+  const ChecklistItem = ({ label, ok }: { label: string; ok: boolean }) => (
+    <div className="flex items-center gap-2">
+      {ok ? (
+        <CheckCircle2 className="w-5 h-5 text-success" />
+      ) : (
+        <AlertTriangle className="w-5 h-5 text-warning" />
+      )}
+      <span className="text-sm font-medium">{label}</span>
+    </div>
+  )
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
@@ -105,6 +129,27 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                   onChange={(e) => setLocalFicha({ ...localFicha, codigoContrato: e.target.value })}
                   placeholder="Insira o contrato..."
                 />
+              </div>
+            </div>
+
+            <div className="bg-card p-4 rounded-md border shadow-sm mt-2">
+              <Label className="text-base font-semibold block mb-4">Checklist de Validação</Label>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <ChecklistItem label="Contrato Validado" ok={isContratoValidado} />
+                <ChecklistItem label="Vínculo de OS" ok={isOsVinculado} />
+                <ChecklistItem label="Ocorrências Zeradas" ok={isOcorrenciasZeradas} />
+                <ChecklistItem label="Visto da Secretaria" ok={isVistoSecretaria} />
+              </div>
+              <div className="mt-5 pt-4 border-t flex justify-end">
+                <Button
+                  size="sm"
+                  variant={isVistoSecretaria ? 'secondary' : 'outline'}
+                  disabled={!isSecretaria || isVistoSecretaria}
+                  onClick={() => setLocalFicha({ ...localFicha, vistoSecretaria: true })}
+                >
+                  <ShieldCheck className="w-4 h-4 mr-2" />
+                  {isVistoSecretaria ? 'Informações Validadas' : 'Validar Informações'}
+                </Button>
               </div>
             </div>
 
@@ -176,13 +221,13 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
             Salvar Parcial
           </Button>
           <Button
-            onClick={handleResolver}
+            onClick={handleFinalizar}
             disabled={!canConcluir()}
             className={
               canConcluir() ? 'bg-success hover:bg-success/90 text-success-foreground' : ''
             }
           >
-            Resolver Ficha
+            Finalizar Ficha
           </Button>
         </DialogFooter>
       </DialogContent>
