@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/card'
 import { useAuthStore } from '@/stores/auth'
 import { toast } from 'sonner'
-import { FlaskConical } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -41,10 +40,15 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-sm animate-fade-in-up border-primary/10 shadow-lg">
         <CardHeader className="space-y-2 text-center pb-6">
-          <div className="flex justify-center mb-2">
-            <div className="h-14 w-14 bg-primary/10 rounded-full flex items-center justify-center ring-4 ring-background shadow-inner">
-              <FlaskConical className="h-7 w-7 text-primary" />
-            </div>
+          <div className="flex justify-center mb-4">
+            <img
+              src="/logo.png"
+              alt="App Amostragem"
+              className="h-16 w-auto object-contain transition-transform hover:scale-105 duration-300"
+              onError={(e) => {
+                e.currentTarget.src = 'https://img.usecurling.com/i?q=science&color=blue'
+              }}
+            />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Bem-vindo de volta</CardTitle>
           <CardDescription>Insira suas credenciais para acessar o sistema.</CardDescription>
