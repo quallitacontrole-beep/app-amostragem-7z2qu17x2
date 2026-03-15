@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Ficha, Ocorrencia } from '@/types'
 import { useAppStore } from '@/stores/main'
+import { useAuthStore } from '@/stores/auth'
 import { RegistroHeader } from '@/components/RegistroHeader'
 import { RegistroItens } from '@/components/RegistroItens'
 import {
@@ -21,7 +22,8 @@ import { Label } from '@/components/ui/label'
 
 export default function Registro() {
   const navigate = useNavigate()
-  const { addFicha, currentUser } = useAppStore()
+  const { addFicha } = useAppStore()
+  const { user } = useAuthStore()
   const [isOccModalOpen, setOccModalOpen] = useState(false)
   const [occText, setOccText] = useState('')
 
@@ -30,7 +32,7 @@ export default function Registro() {
       .toString()
       .padStart(3, '0')}`,
     dataRecebimento: new Date().toISOString(),
-    responsavel: 'Amostrador Atual',
+    responsavel: user?.name || 'Amostrador',
     formaRecebimento: '',
     clienteNome: '',
     cpfCnpj: '',
@@ -43,10 +45,15 @@ export default function Registro() {
     isDraft: true,
   })
 
-  if (currentUser !== 'Amostragem') {
+  if (user?.role !== 'Amostragem') {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Acesso restrito ao perfil Amostragem.
+      <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
+        <AlertTriangle className="h-10 w-10 text-muted-foreground mb-4" />
+        <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
+        <p>Apenas usuários com perfil de Amostragem podem registrar novas fichas.</p>
+        <Button variant="outline" className="mt-6" onClick={() => navigate('/')}>
+          Voltar ao Dashboard
+        </Button>
       </div>
     )
   }

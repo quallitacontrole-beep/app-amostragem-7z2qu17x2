@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAppStore } from '@/stores/main'
+import { useAuthStore } from '@/stores/auth'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
@@ -11,19 +12,27 @@ import {
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { FileEdit } from 'lucide-react'
+import { FileEdit, ShieldAlert } from 'lucide-react'
 import { format } from 'date-fns'
 import { PendenciaModal } from '@/components/PendenciaModal'
 import { Ficha } from '@/types'
+import { useNavigate } from 'react-router-dom'
 
 export default function Pendencias() {
-  const { fichas, updateFicha, currentUser } = useAppStore()
+  const { fichas, updateFicha } = useAppStore()
+  const { user } = useAuthStore()
   const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null)
+  const navigate = useNavigate()
 
-  if (currentUser !== 'Secretaria') {
+  if (user?.role !== 'Secretaria') {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Acesso restrito ao perfil Secretaria.
+      <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
+        <ShieldAlert className="h-10 w-10 text-muted-foreground mb-4" />
+        <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
+        <p>Apenas usuários com perfil de Secretaria podem acessar as pendências.</p>
+        <Button variant="outline" className="mt-6" onClick={() => navigate('/')}>
+          Voltar ao Dashboard
+        </Button>
       </div>
     )
   }

@@ -7,8 +7,6 @@ interface AppContextData {
   addFicha: (ficha: Ficha) => void
   updateFicha: (ficha: Ficha) => void
   updateConfiguracoes: (config: Configuracoes) => void
-  currentUser: string
-  setCurrentUser: (user: string) => void
 }
 
 const mockFichas: Ficha[] = [
@@ -87,7 +85,6 @@ const AppContext = createContext<AppContextData>({} as AppContextData)
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [fichas, setFichas] = useState<Ficha[]>(mockFichas)
   const [configuracoes, setConfiguracoes] = useState<Configuracoes>(defaultConfig)
-  const [currentUser, setCurrentUser] = useState('Amostragem')
 
   const addFicha = (ficha: Ficha) => setFichas((prev) => [ficha, ...prev])
 
@@ -122,8 +119,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addFicha,
         updateFicha,
         updateConfiguracoes,
-        currentUser,
-        setCurrentUser,
       }}
     >
       {children}

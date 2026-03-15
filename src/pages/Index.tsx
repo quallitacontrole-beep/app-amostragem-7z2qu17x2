@@ -3,11 +3,13 @@ import { ClipboardList, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-rea
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/stores/main'
+import { useAuthStore } from '@/stores/auth'
 import { StatusBadge } from '@/components/StatusBadge'
 import { format } from 'date-fns'
 
 export default function Index() {
-  const { fichas, currentUser } = useAppStore()
+  const { fichas } = useAppStore()
+  const { user } = useAuthStore()
 
   const counts = {
     triagem: fichas.filter((f) => f.status === 'Em Triagem').length,
@@ -27,7 +29,7 @@ export default function Index() {
           <p className="text-muted-foreground mt-1">Visão geral do recebimento de amostras.</p>
         </div>
         <div className="flex items-center gap-3">
-          {currentUser === 'Amostragem' ? (
+          {user?.role === 'Amostragem' ? (
             <Button asChild size="lg" className="shadow-md">
               <Link to="/registro">
                 Registrar Amostra <ArrowRight className="ml-2 h-4 w-4" />
