@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Ficha, AmostraItem } from '@/types'
 import { useAuthStore } from '@/stores/auth'
+import { useAppStore } from '@/stores/main'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -23,6 +25,8 @@ import {
 import { toast } from 'sonner'
 import { CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RegistroHeader } from '@/components/RegistroHeader'
+import { RegistroItens } from '@/components/RegistroItens'
 
 interface Props {
   ficha: Ficha | null
@@ -33,10 +37,15 @@ interface Props {
 
 export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   const { user } = useAuthStore()
+  const { addNotification } = useAppStore()
   const [localFicha, setLocalFicha] = useState<Ficha | null>(null)
+  const [respostas, setRespostas] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (ficha && isOpen) setLocalFicha(JSON.parse(JSON.stringify(ficha)))
+    if (ficha && isOpen) {
+      setLocalFicha(JSON.parse(JSON.stringify(ficha)))
+      setRespostas({})
+    }
   }, [ficha, isOpen])
 
   if (!localFicha) return null
@@ -51,15 +60,37 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     )
   }
 
-  const toggleOcc = (id: string, resolvida: boolean) => {
-    setLocalFicha((prev) =>
-      prev
-        ? {
-            ...prev,
-            ocorrencias: prev.ocorrencias.map((o) => (o.id === id ? { ...o, resolvida } : o)),
+  const toggleOcc = (id: string, resolvida: boolean, resposta?: string) => {
+    setLocalFicha((prev) => {
+      if (!prev) return null
+      return {
+        ...prev,
+        ocorrencias: prev.ocorrencias.map((o) => {
+          if (o.id === id) {
+            const updated = { ...o, resolvida }
+            if (resposta) updated.respostaSecretaria = resposta
+            return updated
           }
-        : null,
-    )
+          return o
+        }),
+      }
+    })
+    if (resolvida && resposta && localFicha) {
+      addNotification({
+        userId: localFicha.responsavel,
+        message: `A pendência na ficha ${localFicha.id} foi respondida: "${resposta}"`,
+        fichaId: localFicha.id,
+      })
+    }
+  }
+
+  const handleResolve = (occId: string) => {
+    const resp = respostas[occId]
+    if (!resp || resp.trim() === '') {
+      toast.error('A Resposta da Secretaria é obrigatória para resolver a ocorrência.')
+      return
+    }
+    toggleOcc(occId, true, resp)
   }
 
   const isContratoValidado = Boolean(
@@ -101,7 +132,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90dvh] flex flex-col p-0 overflow-hidden gap-0 sm:rounded-lg">
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90dvh] flex flex-col p-0 overflow-hidden gap-0 sm:rounded-lg bg-background">
         <div className="px-4 sm:px-6 py-4 border-b shrink-0 bg-background z-10">
           <DialogHeader>
             <DialogTitle className="text-xl pr-8">Tratar Pendências - {localFicha.id}</DialogTitle>
@@ -139,7 +170,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                   >
                     <ShieldCheck className="w-4 h-4 mr-2 shrink-0" />
                     <span className="truncate">
-                      {isVistoSecretaria ? 'Informações Validadas' : 'Validar Informações'}
+                      {isVistoSecretaria ? 'Informações Validadas' : 'Validar as informações'}
                     </span>
                   </Button>
                 </div>
@@ -173,13 +204,43 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                   >
                     <div className="space-y-2">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                        Descrição da Pendência
+                        Descrição Original
                       </Label>
                       <div className="bg-muted/40 p-3 rounded border text-sm whitespace-pre-wrap text-foreground break-words">
                         {occ.descricao}
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row justify-end border-t pt-3 mt-1">
+
+                    {occ.resolvida && occ.respostaSecretaria && (
+                      <div className="space-y-2 mt-2">
+                        <Label className="text-xs font-semibold text-success uppercase tracking-wider block">
+                          Sua Resposta
+                        </Label>
+                        <div className="bg-success/10 border-success/20 p-3 rounded border text-sm whitespace-pre-wrap text-foreground break-words">
+                          {occ.respostaSecretaria}
+                        </div>
+                      </div>
+                    )}
+
+                    {!occ.resolvida && (
+                      <div className="space-y-2 mt-3">
+                        <Label className="text-xs font-semibold text-primary uppercase tracking-wider block">
+                          Resposta da Secretaria <span className="text-destructive">*</span>
+                        </Label>
+                        <Textarea
+                          placeholder="Digite a resposta para o amostrador..."
+                          value={respostas[occ.id] || ''}
+                          onChange={(e) => setRespostas({ ...respostas, [occ.id]: e.target.value })}
+                          className={cn(
+                            !respostas[occ.id]
+                              ? 'border-warning/50 focus-visible:ring-warning'
+                              : '',
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row justify-end border-t pt-3 mt-2">
                       {occ.resolvida ? (
                         <Button
                           variant="outline"
@@ -193,9 +254,9 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                         <Button
                           className="bg-success hover:bg-success/90 text-success-foreground font-semibold shadow-sm w-full sm:w-auto"
                           size="sm"
-                          onClick={() => toggleOcc(occ.id, true)}
+                          onClick={() => handleResolve(occ.id)}
                         >
-                          Resolver Ocorrência
+                          Resolver ocorrência
                         </Button>
                       )}
                     </div>
@@ -248,6 +309,36 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                 </Table>
               </div>
             </div>
+
+            <details className="group bg-card rounded-md border shadow-sm mt-6 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex items-center justify-between p-4 font-semibold cursor-pointer select-none">
+                <span>Visualizar Ficha Completa</span>
+                <span className="transition group-open:rotate-180">
+                  <svg
+                    fill="none"
+                    height="20"
+                    width="20"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </span>
+              </summary>
+              <div className="p-4 pt-0 border-t mt-2 space-y-6 opacity-80 pointer-events-none bg-muted/10 pb-6">
+                <fieldset disabled className="space-y-6">
+                  <RegistroHeader ficha={localFicha} setFicha={() => {}} />
+                  <RegistroItens
+                    itens={localFicha.itens}
+                    setItens={() => {}}
+                    codigoContrato={localFicha.codigoContrato}
+                  />
+                </fieldset>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -266,7 +357,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                   : '',
               )}
             >
-              Finalizar Ficha
+              Finalizar ficha
             </Button>
           </DialogFooter>
         </div>

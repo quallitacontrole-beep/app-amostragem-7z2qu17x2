@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
-import { Ficha, Configuracoes, AuditLog } from '@/types'
+import { Ficha, Configuracoes, AuditLog, AppNotification } from '@/types'
 import { ALL_CITIES } from '@/lib/cidades'
 
 interface AppContextData {
   fichas: Ficha[]
   configuracoes: Configuracoes
   auditLogs: AuditLog[]
+  notifications: AppNotification[]
   addFicha: (ficha: Ficha) => void
   updateFicha: (ficha: Ficha) => void
   updateConfiguracoes: (config: Configuracoes) => void
   addAuditLog: (log: Omit<AuditLog, 'id' | 'timestamp'>) => void
+  addNotification: (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => void
+  markNotificationAsRead: (id: string) => void
 }
 
 const currentYear = new Date().getFullYear()
@@ -232,14 +235,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const stored = localStorage.getItem('app_audit_logs')
       if (stored) {
         const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
       }
     } catch (error) {
       console.warn('Failed to load audit logs from storage', error)
     }
     return mockAuditLogs
+  })
+
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    try {
+      const stored = localStorage.getItem('app_notifications')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch (error) {
+      console.warn('Failed to load notifications from storage', error)
+    }
+    return []
   })
 
   useEffect(() => {
@@ -249,6 +263,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     localStorage.setItem('app_audit_logs', JSON.stringify(auditLogs))
   }, [auditLogs])
+
+  useEffect(() => {
+    localStorage.setItem('app_notifications', JSON.stringify(notifications))
+  }, [notifications])
 
   const addFicha = (ficha: Ficha) => setFichas((prev) => [ficha, ...prev])
 
@@ -264,6 +282,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       timestamp: new Date().toISOString(),
     }
     setAuditLogs((prev) => [newLog, ...prev])
+  }
+
+  const addNotification = (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => {
+    setNotifications((prev) => [
+      {
+        ...n,
+        id: `notif-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        read: false,
+      },
+      ...prev,
+    ])
+  }
+
+  const markNotificationAsRead = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
   }
 
   useEffect(() => {
@@ -300,10 +334,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         fichas,
         configuracoes,
         auditLogs,
+        notifications,
         addFicha,
         updateFicha,
         updateConfiguracoes,
         addAuditLog,
+        addNotification,
+        markNotificationAsRead,
       }}
     >
       {children}

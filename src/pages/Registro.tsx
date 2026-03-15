@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Send, AlertTriangle } from 'lucide-react'
+import { Save, Send, AlertTriangle, ShieldAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Ficha, Ocorrencia } from '@/types'
@@ -253,6 +253,8 @@ export default function Registro() {
     navigate('/')
   }
 
+  const hasResponses = ficha.ocorrencias.some((o) => o.respostaSecretaria)
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in">
       <div>
@@ -261,6 +263,30 @@ export default function Registro() {
         </h1>
         <p className="text-muted-foreground mt-1">Preencha os dados da amostra recebida.</p>
       </div>
+
+      {hasResponses && (
+        <div className="bg-primary/10 border border-primary/20 p-4 rounded-md space-y-3 animate-fade-in">
+          <h3 className="font-semibold text-primary flex items-center gap-2">
+            <ShieldAlert className="w-5 h-5" />
+            Mensagens da Secretaria
+          </h3>
+          <div className="space-y-2">
+            {ficha.ocorrencias
+              .filter((o) => o.respostaSecretaria)
+              .map((o) => (
+                <div key={o.id} className="bg-background border rounded p-3 text-[13px] shadow-sm">
+                  <div className="font-semibold text-muted-foreground mb-1 uppercase tracking-wider text-[10px]">
+                    Pendência Original: {o.descricao}
+                  </div>
+                  <div className="text-foreground">
+                    <span className="font-semibold text-primary">Resposta:</span>{' '}
+                    {o.respostaSecretaria}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       <RegistroHeader ficha={ficha} setFicha={setFicha} />
       <RegistroItens
@@ -272,7 +298,7 @@ export default function Registro() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem]">
         {user?.sector !== 'Secretaria' && (
           <Button variant="destructive" className="mr-auto" onClick={() => setOccModalOpen(true)}>
-            <AlertTriangle className="mr-2 h-4 w-4" /> Contrato Indefinido
+            <AlertTriangle className="mr-2 h-4 w-4" /> Resolução Secretaria
           </Button>
         )}
         {user?.sector !== 'Secretaria' && (
@@ -293,7 +319,7 @@ export default function Registro() {
       <Dialog open={isOccModalOpen} onOpenChange={setOccModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reportar Contrato Indefinido</DialogTitle>
+            <DialogTitle>Reportar Resolução de Pendência</DialogTitle>
             <DialogDescription>
               A ficha será enviada para a Secretaria com status de pendência.
             </DialogDescription>
@@ -317,7 +343,7 @@ export default function Registro() {
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleOcorrenciaSubmit}>
-              Gerar Ocorrência
+              Gerar ocorrência
             </Button>
           </DialogFooter>
         </DialogContent>

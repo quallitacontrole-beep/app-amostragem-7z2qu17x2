@@ -4,6 +4,7 @@ export interface Ocorrencia {
   id: string
   descricao: string
   resolvida: boolean
+  respostaSecretaria?: string
 }
 
 export interface AmostraItem {
@@ -61,4 +62,13 @@ export interface AuditLog {
   fichaId: string
   timestamp: string
   details?: string
+}
+
+export interface AppNotification {
+  id: string
+  userId: string
+  message: string
+  fichaId: string
+  read: boolean
+  createdAt: string
 }
