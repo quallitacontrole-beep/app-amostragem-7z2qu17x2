@@ -245,7 +245,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                 />
               </div>
 
-              {hasUnconfirmedTagChange && (
+              {hasUnconfirmedTagChange && !isSecretaria && (
                 <div className="bg-destructive/5 border border-destructive/20 p-4 rounded-md space-y-3 animate-fade-in">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />

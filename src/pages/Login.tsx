@@ -30,7 +30,18 @@ export default function Login() {
 
     if (login(email, password)) {
       toast.success('Login realizado com sucesso!')
-      navigate(from, { replace: true })
+
+      let finalRedirect = from
+      const users = JSON.parse(localStorage.getItem('app_users') || '[]')
+      const found = users.find(
+        (u: any) => (u.email === email || u.name === email) && u.pass === password,
+      )
+
+      if (found && found.sector === 'Amostragem' && finalRedirect.startsWith('/pendencias')) {
+        finalRedirect = '/'
+      }
+
+      navigate(finalRedirect, { replace: true })
     } else {
       toast.error('Email/Usuário ou senha inválidos. Tente novamente.')
     }

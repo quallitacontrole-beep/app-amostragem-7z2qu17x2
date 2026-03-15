@@ -10,7 +10,7 @@ import {
   FileEdit,
   ShieldCheck,
   Calendar as CalendarIcon,
-  ShieldAlert,
+  Tag,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,14 +24,16 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
 import { StatusBadge } from '@/components/StatusBadge'
 import { PendenciaModal } from '@/components/PendenciaModal'
-import { Ficha, AppNotification } from '@/types'
+import { Ficha } from '@/types'
 import { format } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 const formatName = (name: string) => {
   if (!name) return ''
@@ -145,21 +147,40 @@ export default function Index() {
   )
 
   const userNameFormatted = user?.name ? formatName(user.name) : ''
-  const myAlerts = notifications.filter(
-    (n) =>
-      !n.read &&
-      n.type === 'tag_change' &&
-      (n.userId === user?.name || n.userId === userNameFormatted || n.userId === user?.id),
+  const userFichasNeedingTagChange =
+    user?.sector !== 'Secretaria'
+      ? fichas.filter(
+          (f) =>
+            (f.responsavel === user?.name ||
+              f.responsavel === userNameFormatted ||
+              f.responsavel === user?.id) &&
+            f.itens.some((i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada),
+        )
+      : []
+
+  const tagChangeAlerts = userFichasNeedingTagChange.flatMap((f) =>
+    f.itens
+      .filter((i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada)
+      .map((i) => ({ fichaId: f.id, ficha: f, item: i })),
   )
 
-  const groupedAlerts = myAlerts.reduce(
-    (acc, alert) => {
-      if (!acc[alert.fichaId]) acc[alert.fichaId] = []
-      acc[alert.fichaId].push(alert)
-      return acc
-    },
-    {} as Record<string, AppNotification[]>,
-  )
+  const handleConfirmTagChange = (fichaId: string, itemId: string) => {
+    const ficha = fichas.find((f) => f.id === fichaId)
+    if (!ficha) return
+    const updatedItems = ficha.itens.map((i) =>
+      i.id === itemId ? { ...i, trocaEtiquetaConfirmada: true } : i,
+    )
+    updateFicha({ ...ficha, itens: updatedItems })
+
+    const stillPending = updatedItems.some(
+      (i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
+    )
+    if (!stillPending) {
+      const notifs = notifications.filter((n) => n.type === 'tag_change' && n.fichaId === fichaId)
+      notifs.forEach((n) => markNotificationAsRead(n.id))
+    }
+    toast.success('Troca física de etiqueta confirmada com sucesso.')
+  }
 
   return (
     <div className="space-y-8 animate-fade-in pb-10">
@@ -227,42 +248,53 @@ export default function Index() {
         </div>
       </div>
 
-      {Object.entries(groupedAlerts).length > 0 && (
+      {tagChangeAlerts.length > 0 && (
         <div className="space-y-4 animate-fade-in-down">
-          <h2 className="text-lg font-semibold flex items-center gap-2 text-destructive">
-            <AlertCircle className="h-5 w-5" />
-            Alertas de Troca de Etiqueta (Ações Necessárias)
+          <h2 className="text-lg font-semibold flex items-center gap-2 text-warning-foreground">
+            <Tag className="h-5 w-5" />
+            Central de Alertas: Troca de Etiqueta
           </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Object.entries(groupedAlerts).map(([fichaId, alerts]) => (
-              <Card
-                key={fichaId}
-                className="border-destructive/40 shadow-sm bg-destructive/5 overflow-hidden"
+          <Card className="border-warning/40 shadow-sm bg-warning/5 overflow-hidden">
+            <CardContent className="p-0">
+              <ScrollArea
+                className={cn('px-4 py-4', tagChangeAlerts.length > 3 ? 'h-[280px]' : '')}
               >
-                <CardHeader className="pb-3 pt-4 px-4 flex flex-row items-center justify-between border-b border-destructive/10 bg-destructive/10">
-                  <CardTitle className="text-base text-destructive flex items-center gap-2">
-                    <ShieldAlert className="h-4 w-4" /> Ficha {fichaId}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 flex flex-col justify-between gap-4 h-[calc(100%-53px)]">
-                  <ul className="list-disc list-inside text-sm text-destructive/90 space-y-1.5 flex-1">
-                    {alerts.map((a) => (
-                      <li key={a.id} className="leading-snug">
-                        {a.message}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    size="sm"
-                    className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
-                    onClick={() => alerts.forEach((a) => markNotificationAsRead(a.id))}
-                  >
-                    Confirmar Atualização de Etiquetas
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {tagChangeAlerts.map(({ fichaId, ficha, item }) => (
+                    <div
+                      key={`${fichaId}-${item.id}`}
+                      className="bg-background border border-warning/20 rounded-md p-3 shadow-sm flex flex-col justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-semibold text-foreground">
+                            Ficha {fichaId}
+                          </span>
+                          <StatusBadge status={ficha.status} className="scale-75 origin-right" />
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-snug">
+                          Amostra:{' '}
+                          <span className="font-medium text-foreground">{item.descricao}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          OS alterada:{' '}
+                          <span className="line-through">{item.ordemServicoAnterior}</span> →{' '}
+                          <span className="font-bold text-foreground">{item.ordemServico}</span>
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full bg-warning hover:bg-warning/90 text-warning-foreground shadow-sm"
+                        onClick={() => handleConfirmTagChange(fichaId, item.id)}
+                      >
+                        Confirmar Troca Física
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </div>
       )}
 
