@@ -1,4 +1,4 @@
-export type StatusFicha = 'Em Triagem' | 'Aguardando Secretaria' | 'Concluída'
+export type StatusFicha = 'Em Triagem' | 'Aguardando Secretaria' | 'Resolvida'
 
 export interface Ocorrencia {
   id: string

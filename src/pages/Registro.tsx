@@ -156,7 +156,10 @@ export default function Registro() {
     const action = id ? 'Atualizou' : 'Criou'
     let status: Ficha['status'] = isDraftSave ? 'Em Triagem' : 'Aguardando Secretaria'
 
-    if (user?.sector === 'Secretaria' && ficha.status) {
+    // Check to prevent overwriting a resolved status
+    if (ficha.status === 'Resolvida' && !isDraftSave) {
+      status = 'Resolvida'
+    } else if (user?.sector === 'Secretaria' && ficha.status) {
       status = ficha.status
     }
 

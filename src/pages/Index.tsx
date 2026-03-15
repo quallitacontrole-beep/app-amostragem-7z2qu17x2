@@ -39,7 +39,7 @@ export default function Index() {
   const counts = {
     triagem: fichas.filter((f) => f.status === 'Em Triagem').length,
     secretaria: fichas.filter((f) => f.status === 'Aguardando Secretaria').length,
-    concluida: fichas.filter((f) => f.status === 'Concluída').length,
+    resolvida: fichas.filter((f) => f.status === 'Resolvida').length,
   }
 
   const filteredFichas = fichas.filter((f) => {
@@ -136,11 +136,11 @@ export default function Index() {
         </Card>
         <Card className="border-success/20 bg-success/5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-success">Concluídas</CardTitle>
+            <CardTitle className="text-sm font-medium text-success">Resolvidas</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-success">{counts.concluida}</div>
+            <div className="text-3xl font-bold text-success">{counts.resolvida}</div>
             <p className="text-xs text-muted-foreground mt-1">Prontas para análise</p>
           </CardContent>
         </Card>

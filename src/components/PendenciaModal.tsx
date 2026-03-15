@@ -61,11 +61,11 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     return allItemsHaveOS && allOccsResolved
   }
 
-  const handleConcluir = () => {
+  const handleResolver = () => {
     if (!canConcluir()) return toast.error('Resolva ocorrências e insira OS para todos os itens.')
-    onSave({ ...localFicha, status: 'Concluída' })
+    onSave({ ...localFicha, status: 'Resolvida' })
     onClose()
-    toast.success('Ficha Concluída!')
+    toast.success('Ficha Resolvida!')
   }
 
   const handleSaveParcial = () => {
@@ -176,13 +176,13 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
             Salvar Parcial
           </Button>
           <Button
-            onClick={handleConcluir}
+            onClick={handleResolver}
             disabled={!canConcluir()}
             className={
               canConcluir() ? 'bg-success hover:bg-success/90 text-success-foreground' : ''
             }
           >
-            Concluir Ficha
+            Resolver Ficha
           </Button>
         </DialogFooter>
       </DialogContent>
