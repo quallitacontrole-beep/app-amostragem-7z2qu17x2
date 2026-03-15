@@ -21,7 +21,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { toast } from 'sonner'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -102,16 +101,16 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[95dvh] flex flex-col p-0 overflow-hidden gap-0">
-        <div className="px-6 py-4 border-b shrink-0">
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90dvh] flex flex-col p-0 overflow-hidden gap-0 sm:rounded-lg">
+        <div className="px-4 sm:px-6 py-4 border-b shrink-0 bg-background z-10">
           <DialogHeader>
             <DialogTitle className="text-xl pr-8">Tratar Pendências - {localFicha.id}</DialogTitle>
             <DialogDescription>Cliente: {localFicha.clienteNome}</DialogDescription>
           </DialogHeader>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain bg-background">
+          <div className="p-4 sm:p-6 space-y-6">
             <div className="space-y-2 w-full sm:max-w-[50%]">
               <Label>Código do Contrato</Label>
               <Input
@@ -207,7 +206,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
             <div className="space-y-3">
               <Label className="text-base font-semibold">Itens e Ordens de Serviço</Label>
-              <div className="border rounded-md">
+              <div className="border rounded-md overflow-x-auto">
                 <Table className="min-w-[500px]">
                   <TableHeader className="bg-muted/50">
                     <TableRow>
@@ -250,9 +249,9 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
-        <div className="px-6 py-4 border-t bg-muted/20 shrink-0">
+        <div className="px-4 sm:px-6 py-4 border-t bg-muted/20 shrink-0 z-10">
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" className="w-full sm:w-auto" onClick={handleSaveParcial}>
               Salvar Parcial
