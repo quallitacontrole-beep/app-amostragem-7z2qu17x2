@@ -94,25 +94,19 @@ export function RegistroItens({
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2 md:col-span-2">
-                <Label>Descrição</Label>
-                <Input
-                  value={item.descricao}
-                  onChange={(e) => updateItem(item.id, 'descricao', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Qtd / Unid</Label>
+                <Label>Quantidade amostral</Label>
                 <div className="flex gap-2">
                   <Input
                     value={item.quantidade}
                     onChange={(e) =>
                       updateItem(item.id, 'quantidade', e.target.value.replace(/[^0-9.,]/g, ''))
                     }
-                    className="w-1/2"
+                    className="w-24 shrink-0"
                     placeholder="Qtd"
                   />
-                  <div className="w-1/2">
+                  <div className="flex-1">
                     <Select
                       value={item.unidade}
                       onValueChange={(v) => updateItem(item.id, 'unidade', v)}
@@ -131,7 +125,16 @@ export function RegistroItens({
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
+
+              <div className="space-y-2 md:col-span-4">
+                <Label>Descrição</Label>
+                <Input
+                  value={item.descricao}
+                  onChange={(e) => updateItem(item.id, 'descricao', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-1">
                 <Label>Embalagem</Label>
                 <Select
                   value={item.embalagem}
@@ -149,8 +152,9 @@ export function RegistroItens({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Setor Destino</Label>
+
+              <div className="space-y-2 md:col-span-1">
+                <Label>Setor de análise</Label>
                 <Select
                   value={item.setorDestino}
                   onValueChange={(v) => updateItem(item.id, 'setorDestino', v)}
@@ -167,7 +171,8 @@ export function RegistroItens({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+
+              <div className="space-y-2 md:col-span-2">
                 <Label>Análise</Label>
                 <Input
                   value={item.analiseSolicitada}

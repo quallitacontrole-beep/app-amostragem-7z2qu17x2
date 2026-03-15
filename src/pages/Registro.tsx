@@ -21,6 +21,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { isValidCpf, isValidCnpj } from '@/lib/utils'
 
+const formatName = (name: string) => {
+  if (!name) return 'Amostrador'
+  return name
+    .split(/[.\-_]/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}
+
 export default function Registro() {
   const navigate = useNavigate()
   const { addFicha, addAuditLog } = useAppStore()
@@ -33,7 +41,7 @@ export default function Registro() {
       .toString()
       .padStart(3, '0')}`,
     dataRecebimento: new Date().toISOString(),
-    responsavel: user?.name || 'Amostrador',
+    responsavel: formatName(user?.name || ''),
     formaRecebimento: '',
     clienteNome: '',
     cpfCnpj: '',

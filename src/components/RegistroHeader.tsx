@@ -132,7 +132,7 @@ export function RegistroHeader({
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
-          <Label>ID Ficha (Auto)</Label>
+          <Label>ID</Label>
           <Input value={ficha.id} disabled className="bg-muted" />
         </div>
         <div className="space-y-2">
