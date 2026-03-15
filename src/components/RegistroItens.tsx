@@ -23,23 +23,22 @@ export function RegistroItens({
 }) {
   const { configuracoes } = useAppStore()
 
-  const addItem = () => {
-    const newItem: AmostraItem = {
-      id: `it-${Date.now()}`,
-      tipo: '',
-      descricao: '',
-      embalagem: '',
-      quantidade: '',
-      unidade: '',
-      setorDestino: '',
-      analiseSolicitada: '',
-    }
-    setItens([...itens, newItem])
-  }
-
-  const updateItem = (id: string, field: keyof AmostraItem, value: any) => {
+  const addItem = () =>
+    setItens([
+      ...itens,
+      {
+        id: `it-${Date.now()}`,
+        tipo: '',
+        descricao: '',
+        embalagem: '',
+        quantidade: '',
+        unidade: '',
+        setorDestino: '',
+        analiseSolicitada: '',
+      },
+    ])
+  const updateItem = (id: string, field: keyof AmostraItem, value: any) =>
     setItens(itens.map((it) => (it.id === id ? { ...it, [field]: value } : it)))
-  }
 
   return (
     <Card className="animate-slide-down">
@@ -56,9 +55,7 @@ export function RegistroItens({
         {itens.map((item, index) => {
           const isProdAcabado = item.tipo === 'Produto Acabado Farmacêutico'
           const isFQ = item.setorDestino === 'Físico-Químico'
-          const isDiluida = item.tipo === 'Matéria-prima Diluída'
-          const show1g = isFQ && (isProdAcabado || isDiluida)
-          const showDiluicao = isDiluida && isFQ
+          const show1g = isFQ && (isProdAcabado || item.tipo === 'Matéria-prima Diluída')
 
           return (
             <div
@@ -103,7 +100,7 @@ export function RegistroItens({
                     onChange={(e) =>
                       updateItem(item.id, 'quantidade', e.target.value.replace(/[^0-9.,]/g, ''))
                     }
-                    className="w-24 shrink-0"
+                    className="w-14 shrink-0 text-center"
                     placeholder="Qtd"
                   />
                   <div className="flex-1">
@@ -134,7 +131,7 @@ export function RegistroItens({
                 />
               </div>
 
-              <div className="space-y-2 md:col-span-1">
+              <div className="space-y-2 md:col-span-2">
                 <Label>Embalagem</Label>
                 <Select
                   value={item.embalagem}
@@ -153,7 +150,7 @@ export function RegistroItens({
                 </Select>
               </div>
 
-              <div className="space-y-2 md:col-span-1">
+              <div className="space-y-2 md:col-span-2">
                 <Label>Setor de análise</Label>
                 <Select
                   value={item.setorDestino}
@@ -172,7 +169,7 @@ export function RegistroItens({
                 </Select>
               </div>
 
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 md:col-span-4">
                 <Label>Análise</Label>
                 <Input
                   value={item.analiseSolicitada}
@@ -180,7 +177,6 @@ export function RegistroItens({
                 />
               </div>
 
-              {/* Lógica Condicional */}
               {isProdAcabado && (
                 <div className="space-y-2 col-span-4 md:col-span-2 animate-fade-in bg-primary/5 p-3 rounded border border-primary/10">
                   <Label>Dosagem</Label>
@@ -252,17 +248,6 @@ export function RegistroItens({
                       </RadioGroup>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {showDiluicao && (
-                <div className="space-y-2 col-span-4 md:col-span-2 animate-fade-in bg-accent p-3 rounded border">
-                  <Label>Fator de Diluição</Label>
-                  <Input
-                    value={item.fatorDiluicao || ''}
-                    onChange={(e) => updateItem(item.id, 'fatorDiluicao', e.target.value)}
-                    placeholder="Ex: 1:10"
-                  />
                 </div>
               )}
             </div>

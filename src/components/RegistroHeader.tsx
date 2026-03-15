@@ -28,23 +28,18 @@ function CityUfAutocomplete({
   const [search, setSearch] = useState(value)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    setSearch(value)
-  }, [value])
+  useEffect(() => setSearch(value), [value])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setOpen(false)
-      }
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const searchLower = removeAccents(search.toLowerCase())
   const filtered = options
-    .filter((o) => removeAccents(o.toLowerCase()).includes(searchLower))
+    .filter((o) => removeAccents(o.toLowerCase()).includes(removeAccents(search.toLowerCase())))
     .sort((a, b) => a.localeCompare(b))
     .slice(0, 50)
 
@@ -61,11 +56,11 @@ function CityUfAutocomplete({
         placeholder="Ex: São Paulo-SP"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-md py-1 animate-in fade-in zoom-in-95">
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-md py-1 animate-in fade-in">
           {filtered.map((opt) => (
             <div
               key={opt}
-              className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="px-3 py-2 text-sm cursor-pointer hover:bg-accent"
               onClick={() => {
                 setSearch(opt)
                 onChange(opt)
@@ -75,11 +70,6 @@ function CityUfAutocomplete({
               {opt}
             </div>
           ))}
-          {options.length > 0 && filtered.length === 50 && (
-            <div className="px-3 py-2 text-xs text-muted-foreground text-center italic border-t mt-1 bg-muted/30">
-              Mais resultados disponíveis... Refine a busca.
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -109,19 +99,28 @@ export function RegistroHeader({
     }, 800)
   }
 
-  const updateField = (field: keyof Ficha, value: string) => {
-    setFicha({ ...ficha, [field]: value })
-  }
-
-  const handleCpfCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCpfCnpj(e.target.value)
-    updateField('cpfCnpj', formatted)
-  }
+  const updateField = (field: keyof Ficha, value: string) => setFicha({ ...ficha, [field]: value })
+  const handleCpfCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    updateField('cpfCnpj', formatCpfCnpj(e.target.value))
 
   const digits = ficha.cpfCnpj.replace(/\D/g, '')
   const isCpfCnpjInvalid =
     ficha.cpfCnpj.length > 0 &&
     ((digits.length <= 11 && !isValidCpf(digits)) || (digits.length > 11 && !isValidCnpj(digits)))
+
+  const codParts = (ficha.codigoContrato || '').split('/')
+  const codPrefix = codParts[0] || ''
+  const codYear = codParts[1] || ''
+
+  const handlePrefixChange = (val: string) => {
+    const p = val.replace(/\D/g, '').slice(0, 4)
+    updateField('codigoContrato', !p && !codYear ? '' : `${p}/${codYear}`)
+  }
+
+  const handleYearChange = (val: string) => {
+    const y = val.replace(/\D/g, '').slice(0, 4)
+    updateField('codigoContrato', !codPrefix && !y ? '' : `${codPrefix}/${y}`)
+  }
 
   return (
     <Card className="animate-slide-down">
@@ -130,25 +129,25 @@ export function RegistroHeader({
           {configuracoes.nomeFicha || 'Ficha de Recebimento de Amostras'}
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-4 md:grid-cols-3">
-        <div className="space-y-2">
+      <CardContent className="grid gap-4 md:grid-cols-12">
+        <div className="space-y-2 md:col-span-2">
           <Label>ID</Label>
           <Input value={ficha.id} disabled className="bg-muted" />
         </div>
-        <div className="space-y-2">
-          <Label>Data/Hora Recebimento</Label>
+        <div className="space-y-2 md:col-span-3">
+          <Label>Data Receb</Label>
           <Input
-            value={format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy HH:mm')}
+            value={format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')}
             disabled
             className="bg-muted"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 md:col-span-3">
           <Label>Responsável</Label>
           <Input value={ficha.responsavel} disabled className="bg-muted" />
         </div>
-        <div className="space-y-2">
-          <Label>Forma de Recebimento</Label>
+        <div className="space-y-2 md:col-span-4">
+          <Label>Recebimento</Label>
           <Select
             value={ficha.formaRecebimento}
             onValueChange={(v) => updateField('formaRecebimento', v)}
@@ -165,9 +164,10 @@ export function RegistroHeader({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2 md:col-span-2">
+
+        <div className="space-y-2 md:col-span-5">
           <Label className="flex justify-between">
-            Cliente / Origem
+            Nome do Cliente
             <button
               type="button"
               onClick={simulateLookup}
@@ -180,31 +180,29 @@ export function RegistroHeader({
               )}
             </button>
           </Label>
-          <div className="flex gap-2 items-start">
-            <Input
-              placeholder="Nome do Cliente"
-              value={ficha.clienteNome}
-              onChange={(e) => updateField('clienteNome', e.target.value)}
-              className="flex-1"
-            />
-            <div className="w-1/3 space-y-1 relative">
-              <Input
-                placeholder="CPF/CNPJ"
-                value={ficha.cpfCnpj}
-                onChange={handleCpfCnpjChange}
-                className={
-                  isCpfCnpjInvalid ? 'border-destructive focus-visible:ring-destructive' : ''
-                }
-              />
-              {isCpfCnpjInvalid && (
-                <p className="text-[10px] text-destructive absolute -bottom-4 left-0">
-                  CPF/CNPJ inválido
-                </p>
-              )}
-            </div>
-          </div>
+          <Input
+            placeholder="Nome do Cliente"
+            value={ficha.clienteNome}
+            onChange={(e) => updateField('clienteNome', e.target.value)}
+          />
         </div>
-        <div className="space-y-2 md:col-span-2">
+
+        <div className="space-y-2 md:col-span-3 relative">
+          <Label>CPF/CNPJ</Label>
+          <Input
+            placeholder="CPF/CNPJ"
+            value={ficha.cpfCnpj}
+            onChange={handleCpfCnpjChange}
+            className={isCpfCnpjInvalid ? 'border-destructive focus-visible:ring-destructive' : ''}
+          />
+          {isCpfCnpjInvalid && (
+            <p className="text-[10px] text-destructive absolute -bottom-4 left-0">
+              CPF/CNPJ inválido
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2 md:col-span-4">
           <Label>Cidade-UF</Label>
           <CityUfAutocomplete
             value={ficha.cidadeUf}
@@ -212,13 +210,26 @@ export function RegistroHeader({
             options={configuracoes.cidadesEstados}
           />
         </div>
-        <div className="space-y-2">
-          <Label>Cód. Contrato (Opcional)</Label>
-          <Input
-            value={ficha.codigoContrato}
-            onChange={(e) => updateField('codigoContrato', e.target.value)}
-            placeholder="Ex: CT-123"
-          />
+
+        <div className="space-y-2 md:col-span-4">
+          <Label>Código</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              value={codPrefix}
+              onChange={(e) => handlePrefixChange(e.target.value)}
+              placeholder="0000"
+              className="w-16 text-center tracking-widest"
+              maxLength={4}
+            />
+            <span className="text-muted-foreground font-bold">/</span>
+            <Input
+              value={codYear}
+              onChange={(e) => handleYearChange(e.target.value)}
+              placeholder="AAAA"
+              className="w-16 text-center tracking-widest"
+              maxLength={4}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>
