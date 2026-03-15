@@ -41,8 +41,6 @@ export function RegistroItens({
     setItens(itens.map((it) => (it.id === id ? { ...it, [field]: value } : it)))
   }
 
-  const removeItem = (id: string) => setItens(itens.filter((it) => it.id !== id))
-
   return (
     <Card className="animate-slide-down">
       <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -72,7 +70,7 @@ export function RegistroItens({
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 text-destructive"
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => setItens(itens.filter((it) => it.id !== item.id))}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -88,7 +86,7 @@ export function RegistroItens({
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {configuracoes.tiposAmostra.map((t) => (
+                    {configuracoes.tiposAmostra?.map((t) => (
                       <SelectItem key={t} value={t}>
                         {t}
                       </SelectItem>
@@ -108,23 +106,48 @@ export function RegistroItens({
                 <div className="flex gap-2">
                   <Input
                     value={item.quantidade}
-                    onChange={(e) => updateItem(item.id, 'quantidade', e.target.value)}
+                    onChange={(e) =>
+                      updateItem(item.id, 'quantidade', e.target.value.replace(/[^0-9.,]/g, ''))
+                    }
                     className="w-1/2"
+                    placeholder="Qtd"
                   />
-                  <Input
-                    value={item.unidade}
-                    onChange={(e) => updateItem(item.id, 'unidade', e.target.value)}
-                    placeholder="Ex: cx"
-                    className="w-1/2"
-                  />
+                  <div className="w-1/2">
+                    <Select
+                      value={item.unidade}
+                      onValueChange={(v) => updateItem(item.id, 'unidade', v)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Unid." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {configuracoes.unidadesQtd?.map((u) => (
+                          <SelectItem key={u} value={u}>
+                            {u}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Embalagem</Label>
-                <Input
+                <Select
                   value={item.embalagem}
-                  onChange={(e) => updateItem(item.id, 'embalagem', e.target.value)}
-                />
+                  onValueChange={(v) => updateItem(item.id, 'embalagem', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {configuracoes.embalagens?.map((e) => (
+                      <SelectItem key={e} value={e}>
+                        {e}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Setor Destino</Label>
@@ -136,7 +159,7 @@ export function RegistroItens({
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {configuracoes.setores.map((s) => (
+                    {configuracoes.setoresAnalise?.map((s) => (
                       <SelectItem key={s} value={s}>
                         {s}
                       </SelectItem>
@@ -155,18 +178,33 @@ export function RegistroItens({
               {/* Lógica Condicional */}
               {isProdAcabado && (
                 <div className="space-y-2 col-span-4 md:col-span-2 animate-fade-in bg-primary/5 p-3 rounded border border-primary/10">
-                  <Label>Dosagem / Unidade Dosagem</Label>
+                  <Label>Dosagem</Label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Dosagem"
+                      placeholder="Valor"
                       value={item.dosagem || ''}
-                      onChange={(e) => updateItem(item.id, 'dosagem', e.target.value)}
+                      onChange={(e) =>
+                        updateItem(item.id, 'dosagem', e.target.value.replace(/[^0-9.,]/g, ''))
+                      }
+                      className="w-1/2"
                     />
-                    <Input
-                      placeholder="Ex: mg"
-                      value={item.unidadeDosagem || ''}
-                      onChange={(e) => updateItem(item.id, 'unidadeDosagem', e.target.value)}
-                    />
+                    <div className="w-1/2">
+                      <Select
+                        value={item.unidadeDosagem || ''}
+                        onValueChange={(v) => updateItem(item.id, 'unidadeDosagem', v)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Unid." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {configuracoes.unidadesDosagem?.map((u) => (
+                            <SelectItem key={u} value={u}>
+                              {u}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               )}

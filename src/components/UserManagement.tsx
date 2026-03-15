@@ -106,7 +106,6 @@ export function UserManagement() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Gerenciamento de Usuários</CardTitle>
           <CardDescription>
             {isAdmin
               ? 'Controle de acesso e cadastro de todos os usuários.'
@@ -216,7 +215,7 @@ export function UserManagement() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Setor</Label>
+                  <Label>Setor de usuários</Label>
                   <Select
                     value={form.sector}
                     onValueChange={(v) => setForm({ ...form, sector: v })}
@@ -225,7 +224,7 @@ export function UserManagement() {
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {configuracoes.setores.map((s) => (
+                      {configuracoes.setores?.map((s) => (
                         <SelectItem key={s} value={s}>
                           {s}
                         </SelectItem>

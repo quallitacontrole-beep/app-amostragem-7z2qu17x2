@@ -31,9 +31,9 @@ const mockFichas: Ficha[] = [
         id: 'it-1',
         tipo: 'Produto Acabado Farmacêutico',
         descricao: 'Paracetamol 500mg',
-        embalagem: 'Blister',
+        embalagem: 'Frasco PET',
         quantidade: '10',
-        unidade: 'Caixas',
+        unidade: 'Unidade',
         setorDestino: 'Físico-Químico',
         analiseSolicitada: 'Teor',
         dosagem: '500',
@@ -59,9 +59,9 @@ const mockFichas: Ficha[] = [
         id: 'it-2',
         tipo: 'Matéria-prima',
         descricao: 'Ácido Ascórbico Pote',
-        embalagem: 'Pote',
+        embalagem: 'Pote plástico',
         quantidade: '2',
-        unidade: 'kg',
+        unidade: 'g',
         setorDestino: 'Microbiologia',
         analiseSolicitada: 'Contagem Total',
       },
@@ -90,7 +90,33 @@ const defaultConfig: Configuracoes = {
     'Cosmético',
     'Alimento',
   ],
-  setores: ['Amostragem', 'Secretaria', 'Físico-Químico', 'Microbiologia', 'Estabilidade'],
+  setores: [
+    'Amostragem',
+    'Secretaria',
+    'Físico-Químico',
+    'Microbiologia',
+    'Estabilidade',
+    'Diretoria',
+  ],
+  setoresAnalise: ['Físico-Químico', 'Microbiologia', 'Estabilidade'],
+  embalagens: [
+    'Frasco PET',
+    'Saco estéril',
+    'Embalagem própria',
+    'Esponja',
+    'Frasco estéril',
+    'Frasco de vidro',
+    'Frasco leitoso',
+    'Frasco plástico âmbar',
+    'Pote plástico',
+    'Sachê',
+    'Saco papel',
+    'Saco plástico',
+    'Swab',
+    'Frasco plástico transparente',
+  ],
+  unidadesQtd: ['Cápsulas', 'g', 'mg', 'mL', 'Sachê', 'Unidade', 'Outr'],
+  unidadesDosagem: ['mg', 'g', 'mcg'],
   cidadesEstados: ALL_CITIES,
 }
 
@@ -129,7 +155,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             if (remoteConfig.cidadesEstados && remoteConfig.cidadesEstados.length < 100) {
               delete remoteConfig.cidadesEstados
             }
-            setConfiguracoes({ ...defaultConfig, ...remoteConfig })
+
+            // Merge carefully ensuring arrays exist if remote lacks them
+            const safeConfig = { ...defaultConfig, ...remoteConfig }
+            safeConfig.setoresAnalise = safeConfig.setoresAnalise || defaultConfig.setoresAnalise
+            safeConfig.embalagens = safeConfig.embalagens || defaultConfig.embalagens
+            safeConfig.unidadesQtd = safeConfig.unidadesQtd || defaultConfig.unidadesQtd
+            safeConfig.unidadesDosagem = safeConfig.unidadesDosagem || defaultConfig.unidadesDosagem
+
+            setConfiguracoes(safeConfig)
           }
         }
       } catch (error) {

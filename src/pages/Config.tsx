@@ -59,7 +59,7 @@ function ConfigList({
   return (
     <Card className="flex flex-col h-full max-h-[600px]">
       <CardHeader className="pb-3 shrink-0">
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-lg">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -151,84 +151,130 @@ export default function Config() {
     updateConfiguracoes({ ...configuracoes, [key]: value })
   }
 
-  const addToList = (
-    key: 'tiposAmostra' | 'formasRecebimento' | 'setores' | 'cidadesEstados',
-    val: string,
-  ) => {
-    handleUpdate(key, [...configuracoes[key], val])
+  type ConfigKeys =
+    | 'tiposAmostra'
+    | 'formasRecebimento'
+    | 'setores'
+    | 'setoresAnalise'
+    | 'embalagens'
+    | 'unidadesQtd'
+    | 'unidadesDosagem'
+    | 'cidadesEstados'
+
+  const addToList = (key: ConfigKeys, val: string) => {
+    handleUpdate(key, [...(configuracoes[key] || []), val])
   }
 
-  const removeFromList = (
-    key: 'tiposAmostra' | 'formasRecebimento' | 'setores' | 'cidadesEstados',
-    val: string,
-  ) => {
+  const removeFromList = (key: ConfigKeys, val: string) => {
     handleUpdate(
       key,
-      configuracoes[key].filter((i) => i !== val),
+      (configuracoes[key] || []).filter((i) => i !== val),
     )
   }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto pb-12">
+    <div className="space-y-10 animate-fade-in max-w-5xl mx-auto pb-12">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
         <p className="text-muted-foreground mt-1">Gerencie os parâmetros e acessos do sistema.</p>
       </div>
 
-      <UserManagement />
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-primary border-b pb-2">
+          Administração de usuários
+        </h2>
+        <UserManagement />
+      </div>
 
       {isAdmin && (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Nome da Ficha</CardTitle>
-              <CardDescription>
-                Defina o título exibido no cabeçalho da ficha de registro.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Input
-                value={configuracoes.nomeFicha}
-                onChange={(e) => handleUpdate('nomeFicha', e.target.value)}
-                placeholder="Ex: Ficha de Recebimento de Amostras - FPGQ012-B"
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-primary border-b pb-2">Nome da ficha</h2>
+            <Card>
+              <CardHeader>
+                <CardDescription>
+                  Defina o título exibido no cabeçalho da ficha de registro.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Input
+                  value={configuracoes.nomeFicha || ''}
+                  onChange={(e) => handleUpdate('nomeFicha', e.target.value)}
+                  placeholder="Ex: Ficha de Recebimento de Amostras - FPGQ012-B"
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-primary border-b pb-2">Cadastros Gerais</h2>
+            <div className="grid gap-6 md:grid-cols-2">
+              <ConfigList
+                title="Tipos de Amostra"
+                description="Gerencie os tipos disponíveis no registro de itens."
+                items={configuracoes.tiposAmostra || []}
+                onAdd={(v) => addToList('tiposAmostra', v)}
+                onRemove={(v) => removeFromList('tiposAmostra', v)}
               />
-            </CardContent>
-          </Card>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <ConfigList
-              title="Tipos de Amostra"
-              description="Gerencie os tipos disponíveis no registro de itens."
-              items={configuracoes.tiposAmostra}
-              onAdd={(v) => addToList('tiposAmostra', v)}
-              onRemove={(v) => removeFromList('tiposAmostra', v)}
-            />
+              <ConfigList
+                title="Formas de Recebimento"
+                description="Maneiras pelas quais as amostras chegam ao local."
+                items={configuracoes.formasRecebimento || []}
+                onAdd={(v) => addToList('formasRecebimento', v)}
+                onRemove={(v) => removeFromList('formasRecebimento', v)}
+              />
 
-            <ConfigList
-              title="Formas de Recebimento"
-              description="Maneiras pelas quais as amostras chegam ao local."
-              items={configuracoes.formasRecebimento}
-              onAdd={(v) => addToList('formasRecebimento', v)}
-              onRemove={(v) => removeFromList('formasRecebimento', v)}
-            />
+              <ConfigList
+                title="Setor de usuários"
+                description="Setores disponíveis para associação aos perfis de usuários."
+                items={configuracoes.setores || []}
+                onAdd={(v) => addToList('setores', v)}
+                onRemove={(v) => removeFromList('setores', v)}
+              />
 
-            <ConfigList
-              title="Setores"
-              description="Setores disponíveis para destino e associação de usuários."
-              items={configuracoes.setores}
-              onAdd={(v) => addToList('setores', v)}
-              onRemove={(v) => removeFromList('setores', v)}
-            />
+              <ConfigList
+                title="Setor de análise"
+                description="Setores de destino para as amostras."
+                items={configuracoes.setoresAnalise || []}
+                onAdd={(v) => addToList('setoresAnalise', v)}
+                onRemove={(v) => removeFromList('setoresAnalise', v)}
+              />
 
-            <ConfigList
-              title="Cidades e Estados"
-              description="Cidades pré-cadastradas para o preenchimento automático (Cidade-UF)."
-              items={configuracoes.cidadesEstados}
-              onAdd={(v) => addToList('cidadesEstados', v)}
-              onRemove={(v) => removeFromList('cidadesEstados', v)}
-              placeholder="Ex: São Paulo-SP"
-              searchable
-            />
+              <ConfigList
+                title="Embalagens"
+                description="Tipos de embalagens disponíveis para as amostras."
+                items={configuracoes.embalagens || []}
+                onAdd={(v) => addToList('embalagens', v)}
+                onRemove={(v) => removeFromList('embalagens', v)}
+              />
+
+              <ConfigList
+                title="Unidade de medida (qtd amostral)"
+                description="Unidades de quantidade para amostras."
+                items={configuracoes.unidadesQtd || []}
+                onAdd={(v) => addToList('unidadesQtd', v)}
+                onRemove={(v) => removeFromList('unidadesQtd', v)}
+              />
+
+              <ConfigList
+                title="Unidade de medida (dosagem)"
+                description="Unidades de dosagem para amostras acabadas."
+                items={configuracoes.unidadesDosagem || []}
+                onAdd={(v) => addToList('unidadesDosagem', v)}
+                onRemove={(v) => removeFromList('unidadesDosagem', v)}
+              />
+
+              <ConfigList
+                title="Cidades e Estados"
+                description="Cidades pré-cadastradas para o preenchimento automático (Cidade-UF)."
+                items={configuracoes.cidadesEstados || []}
+                onAdd={(v) => addToList('cidadesEstados', v)}
+                onRemove={(v) => removeFromList('cidadesEstados', v)}
+                placeholder="Ex: São Paulo-SP"
+                searchable
+              />
+            </div>
           </div>
         </>
       )}

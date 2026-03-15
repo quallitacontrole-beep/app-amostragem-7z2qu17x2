@@ -44,6 +44,10 @@ export interface Configuracoes {
   formasRecebimento: string[]
   tiposAmostra: string[]
   setores: string[]
+  setoresAnalise: string[]
+  embalagens: string[]
+  unidadesQtd: string[]
+  unidadesDosagem: string[]
   cidadesEstados: string[]
 }
 
