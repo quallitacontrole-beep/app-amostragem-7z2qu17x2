@@ -33,6 +33,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   })
 
   useEffect(() => {
+    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
+    const hasAdmin = users.find((u: any) => u.email === 'andre.vale')
+
+    if (!hasAdmin) {
+      users.push({
+        id: 'admin-andre.vale',
+        name: 'andre.vale',
+        email: 'andre.vale',
+        pass: 'abc321',
+        role: 'Administrador',
+      })
+      localStorage.setItem('app_users', JSON.stringify(users))
+    }
+  }, [])
+
+  useEffect(() => {
     if (user) {
       localStorage.setItem('auth_user', JSON.stringify(user))
     } else {

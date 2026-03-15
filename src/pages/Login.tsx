@@ -33,7 +33,7 @@ export default function Login() {
       toast.success('Login realizado com sucesso!')
       navigate(from, { replace: true })
     } else {
-      toast.error('Email ou senha inválidos. Tente novamente.')
+      toast.error('Email/Usuário ou senha inválidos. Tente novamente.')
     }
   }
 
@@ -55,11 +55,11 @@ export default function Login() {
               <Label htmlFor="email">Email ou Usuário</Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="nome@exemplo.com"
+                type="text"
+                placeholder="nome@exemplo.com ou seu usuário"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                autoComplete="username"
               />
             </div>
             <div className="space-y-2">
