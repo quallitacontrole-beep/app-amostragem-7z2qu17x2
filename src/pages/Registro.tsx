@@ -97,6 +97,11 @@ export default function Registro() {
     }
 
     for (const item of ficha.itens) {
+      if (item.protocoloWeb && !ficha.codigoContrato) {
+        toast.error('O Protocolo Web requer que o Código do Contrato seja preenchido no cabeçalho.')
+        return false
+      }
+
       const isFQ = item.setorDestino === 'Físico-Químico'
       const requires1g =
         isFQ &&
@@ -164,7 +169,11 @@ export default function Registro() {
       </div>
 
       <RegistroHeader ficha={ficha} setFicha={setFicha} />
-      <RegistroItens itens={ficha.itens} setItens={(itens) => setFicha({ ...ficha, itens })} />
+      <RegistroItens
+        itens={ficha.itens}
+        setItens={(itens) => setFicha({ ...ficha, itens })}
+        codigoContrato={ficha.codigoContrato}
+      />
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem]">
         <Button variant="destructive" className="mr-auto" onClick={() => setOccModalOpen(true)}>

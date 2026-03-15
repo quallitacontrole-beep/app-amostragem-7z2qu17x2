@@ -13,13 +13,22 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Trash2, Plus } from 'lucide-react'
 import { AmostraItem } from '@/types'
 import { useAppStore } from '@/stores/main'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+
+const getProtocoloNumber = (pw?: string) => {
+  if (!pw) return ''
+  const match = pw.match(/^P(\d+)/)
+  return match ? match[1] : pw.replace(/\D/g, '').slice(0, 4)
+}
 
 export function RegistroItens({
   itens,
   setItens,
+  codigoContrato,
 }: {
   itens: AmostraItem[]
   setItens: (i: AmostraItem[]) => void
+  codigoContrato?: string
 }) {
   const { configuracoes } = useAppStore()
 
@@ -211,11 +220,53 @@ export function RegistroItens({
 
               <div className="space-y-2 md:col-span-2">
                 <Label>Protocolo Web</Label>
-                <Input
-                  value={item.protocoloWeb || ''}
-                  onChange={(e) => handleUpdateItem(item.id, 'protocoloWeb', e.target.value)}
-                  placeholder="Ex: PW-12345"
-                />
+                <div className="flex items-center gap-2">
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex-1" tabIndex={0}>
+                          <div className="relative flex items-center">
+                            <span className="absolute left-3 text-muted-foreground text-[13px] z-10 pointer-events-none">
+                              P
+                            </span>
+                            <Input
+                              className="pl-7 text-[13px]"
+                              placeholder="0000"
+                              value={getProtocoloNumber(item.protocoloWeb)}
+                              onChange={(e) => {
+                                const n = e.target.value.replace(/\D/g, '').slice(0, 4)
+                                if (!n) {
+                                  handleUpdateItem(item.id, 'protocoloWeb', '')
+                                } else {
+                                  handleUpdateItem(
+                                    item.id,
+                                    'protocoloWeb',
+                                    `P${n}-${codigoContrato}`,
+                                  )
+                                }
+                              }}
+                              disabled={!codigoContrato}
+                              maxLength={4}
+                            />
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      {!codigoContrato && (
+                        <TooltipContent>
+                          <p>Preencha o Código do Contrato no cabeçalho primeiro.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <span className="text-muted-foreground font-bold">-</span>
+
+                  <Input
+                    className="flex-1 bg-muted text-[13px] text-center px-1"
+                    value={codigoContrato || '____/____'}
+                    disabled
+                  />
+                </div>
               </div>
 
               {showDosagem && (

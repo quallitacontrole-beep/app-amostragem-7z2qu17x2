@@ -100,8 +100,22 @@ export function RegistroHeader({
   }
 
   const updateField = (field: keyof Ficha, value: string) => setFicha({ ...ficha, [field]: value })
+
   const handleCpfCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     updateField('cpfCnpj', formatCpfCnpj(e.target.value))
+
+  const updateContractCode = (newCod: string) => {
+    const newItens = ficha.itens.map((item) => {
+      if (item.protocoloWeb) {
+        const match = item.protocoloWeb.match(/^P(\d+)/)
+        if (match) {
+          return { ...item, protocoloWeb: newCod ? `P${match[1]}-${newCod}` : '' }
+        }
+      }
+      return item
+    })
+    setFicha({ ...ficha, codigoContrato: newCod, itens: newItens })
+  }
 
   const digits = ficha.cpfCnpj.replace(/\D/g, '')
   const isCpfCnpjInvalid =
@@ -114,12 +128,12 @@ export function RegistroHeader({
 
   const handlePrefixChange = (val: string) => {
     const p = val.replace(/\D/g, '').slice(0, 4)
-    updateField('codigoContrato', !p && !codYear ? '' : `${p}/${codYear}`)
+    updateContractCode(!p && !codYear ? '' : `${p}/${codYear}`)
   }
 
   const handleYearChange = (val: string) => {
     const y = val.replace(/\D/g, '').slice(0, 4)
-    updateField('codigoContrato', !codPrefix && !y ? '' : `${codPrefix}/${y}`)
+    updateContractCode(!codPrefix && !y ? '' : `${codPrefix}/${y}`)
   }
 
   return (
@@ -218,7 +232,7 @@ export function RegistroHeader({
               value={codPrefix}
               onChange={(e) => handlePrefixChange(e.target.value)}
               placeholder="0000"
-              className="w-16 text-center tracking-widest"
+              className="w-16 text-center tracking-widest text-[13px]"
               maxLength={4}
             />
             <span className="text-muted-foreground font-bold">/</span>
@@ -226,7 +240,7 @@ export function RegistroHeader({
               value={codYear}
               onChange={(e) => handleYearChange(e.target.value)}
               placeholder="AAAA"
-              className="w-16 text-center tracking-widest"
+              className="w-16 text-center tracking-widest text-[13px]"
               maxLength={4}
             />
           </div>

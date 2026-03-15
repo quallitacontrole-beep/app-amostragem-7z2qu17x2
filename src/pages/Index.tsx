@@ -129,7 +129,8 @@ export default function Index() {
                     to={`/registro/${ficha.id}`}
                     className="font-medium text-sm text-foreground hover:text-primary transition-colors"
                   >
-                    Ficha {ficha.id} - {ficha.clienteNome}
+                    {ficha.id} - {ficha.clienteNome}
+                    {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
                   </Link>
                   <p className="text-xs text-muted-foreground">
                     Recebido em {format(new Date(ficha.dataRecebimento), "dd/MM/yyyy 'às' HH:mm")}{' '}
