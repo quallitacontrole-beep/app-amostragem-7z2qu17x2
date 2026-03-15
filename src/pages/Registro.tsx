@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { isValidCpf, isValidCnpj } from '@/lib/utils'
 
 export default function Registro() {
   const navigate = useNavigate()
@@ -36,8 +37,7 @@ export default function Registro() {
     formaRecebimento: '',
     clienteNome: '',
     cpfCnpj: '',
-    cidade: '',
-    estado: '',
+    cidadeUf: '',
     codigoContrato: '',
     status: 'Em Triagem',
     ocorrencias: [],
@@ -58,7 +58,31 @@ export default function Registro() {
     )
   }
 
+  const validateForm = () => {
+    if (ficha.itens.length === 0) {
+      toast.error('Adicione pelo menos um item.')
+      return false
+    }
+    if (!ficha.clienteNome) {
+      toast.error('Nome do cliente é obrigatório.')
+      return false
+    }
+    if (ficha.cpfCnpj) {
+      const digits = ficha.cpfCnpj.replace(/\D/g, '')
+      if (digits.length <= 11 && !isValidCpf(digits)) {
+        toast.error('CPF inválido.')
+        return false
+      }
+      if (digits.length > 11 && !isValidCnpj(digits)) {
+        toast.error('CNPJ inválido.')
+        return false
+      }
+    }
+    return true
+  }
+
   const handleSaveDraft = () => {
+    if (!validateForm()) return
     addFicha({ ...ficha, status: 'Em Triagem' })
     addAuditLog({ userId: user.id, userName: user.name, action: 'Criou', fichaId: ficha.id })
     toast.success('Rascunho salvo com sucesso!')
@@ -66,8 +90,7 @@ export default function Registro() {
   }
 
   const handleSubmit = () => {
-    if (ficha.itens.length === 0) return toast.error('Adicione pelo menos um item.')
-    if (!ficha.clienteNome) return toast.error('Nome do cliente é obrigatório.')
+    if (!validateForm()) return
 
     addFicha({ ...ficha, status: 'Aguardando Secretaria', isDraft: false })
     addAuditLog({ userId: user.id, userName: user.name, action: 'Criou', fichaId: ficha.id })

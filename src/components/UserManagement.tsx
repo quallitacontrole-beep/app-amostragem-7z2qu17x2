@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore, Role } from '@/stores/auth'
+import { useAppStore } from '@/stores/main'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -43,6 +44,7 @@ import { toast } from 'sonner'
 
 export function UserManagement() {
   const { user, getAllUsers, createUser, updateUser, deleteUser } = useAuthStore()
+  const { configuracoes } = useAppStore()
   const isAdmin = user?.role === 'Administrador'
 
   const [users, setUsers] = useState<any[]>([])
@@ -215,10 +217,21 @@ export function UserManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label>Setor</Label>
-                  <Input
+                  <Select
                     value={form.sector}
-                    onChange={(e) => setForm({ ...form, sector: e.target.value })}
-                  />
+                    onValueChange={(v) => setForm({ ...form, sector: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {configuracoes.setores.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}

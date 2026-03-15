@@ -31,8 +31,7 @@ export interface Ficha {
   formaRecebimento: string
   clienteNome: string
   cpfCnpj: string
-  cidade: string
-  estado: string
+  cidadeUf: string
   codigoContrato: string
   itens: AmostraItem[]
   status: StatusFicha
@@ -41,9 +40,11 @@ export interface Ficha {
 }
 
 export interface Configuracoes {
+  nomeFicha: string
   formasRecebimento: string[]
   tiposAmostra: string[]
   setores: string[]
+  cidadesEstados: string[]
 }
 
 export interface AuditLog {

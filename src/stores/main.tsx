@@ -19,8 +19,7 @@ const mockFichas: Ficha[] = [
     formaRecebimento: 'Correios',
     clienteNome: 'Farmácia Saúde Vital',
     cpfCnpj: '12.345.678/0001-90',
-    cidade: 'São Paulo',
-    estado: 'SP',
+    cidadeUf: 'São Paulo-SP',
     codigoContrato: '',
     status: 'Aguardando Secretaria',
     ocorrencias: [
@@ -50,8 +49,7 @@ const mockFichas: Ficha[] = [
     formaRecebimento: 'Balcão',
     clienteNome: 'Indústria BioMed',
     cpfCnpj: '98.765.432/0001-10',
-    cidade: 'Campinas',
-    estado: 'SP',
+    cidadeUf: 'Campinas-SP',
     codigoContrato: 'CT-9921',
     status: 'Em Triagem',
     ocorrencias: [],
@@ -82,6 +80,7 @@ const mockAuditLogs: AuditLog[] = [
 ]
 
 const defaultConfig: Configuracoes = {
+  nomeFicha: 'Ficha de Recebimento de Amostras - FPGQ012-B',
   formasRecebimento: ['Correios', 'Motoboy', 'Balcão', 'Cliente', 'Coleta Quallità'],
   tiposAmostra: [
     'Produto Acabado Farmacêutico',
@@ -90,7 +89,15 @@ const defaultConfig: Configuracoes = {
     'Cosmético',
     'Alimento',
   ],
-  setores: ['Físico-Químico', 'Microbiologia', 'Estabilidade'],
+  setores: ['Amostragem', 'Secretaria', 'Físico-Químico', 'Microbiologia', 'Estabilidade'],
+  cidadesEstados: [
+    'Barbacena-MG',
+    'Barcarena-PA',
+    'Belo Horizonte-MG',
+    'Campinas-SP',
+    'Rio de Janeiro-RJ',
+    'São Paulo-SP',
+  ],
 }
 
 const AppContext = createContext<AppContextData>({} as AppContextData)
@@ -123,7 +130,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (response.ok) {
           const data = await response.json()
           if (data && data.configuracoes) {
-            setConfiguracoes(data.configuracoes)
+            setConfiguracoes({ ...defaultConfig, ...data.configuracoes })
           }
         }
       } catch (error) {
