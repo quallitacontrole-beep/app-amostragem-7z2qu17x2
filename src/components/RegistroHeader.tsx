@@ -12,7 +12,7 @@ import { Ficha } from '@/types'
 import { useAppStore } from '@/stores/main'
 import { useState, useRef, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
-import { formatCpfCnpj, isValidCpf, isValidCnpj, removeAccents } from '@/lib/utils'
+import { formatCpfCnpj, isValidCpf, isValidCnpj, removeAccents, cn } from '@/lib/utils'
 
 function CityUfAutocomplete({
   value,
@@ -131,11 +131,13 @@ export function RegistroHeader({
   const digits = ficha.cpfCnpj.replace(/\D/g, '')
   const isCpfCnpjInvalid =
     ficha.cpfCnpj.length > 0 &&
-    ((digits.length <= 11 && !isValidCpf(digits)) || (digits.length > 11 && !isValidCnpj(digits)))
+    ((digits.length === 11 && !isValidCpf(digits)) ||
+      (digits.length === 14 && !isValidCnpj(digits)))
 
   const codParts = (ficha.codigoContrato || '').split('/')
   const codPrefix = codParts[0] || ''
   const codYear = codParts[1] || ''
+  const isCodYearInvalid = codYear.length > 0 && codYear.length < 4
 
   const handlePrefixChange = (val: string) => {
     const p = val.replace(/\D/g, '').slice(0, 4)
@@ -225,7 +227,7 @@ export function RegistroHeader({
             placeholder="CPF/CNPJ"
             value={ficha.cpfCnpj}
             onChange={handleCpfCnpjChange}
-            className={isCpfCnpjInvalid ? 'border-destructive focus-visible:ring-destructive' : ''}
+            className={cn(isCpfCnpjInvalid && 'border-destructive focus-visible:ring-destructive')}
           />
           {isCpfCnpjInvalid && (
             <p className="text-[10px] text-destructive absolute -bottom-4 left-0">
@@ -243,7 +245,7 @@ export function RegistroHeader({
           />
         </div>
 
-        <div className="space-y-2 md:col-span-4">
+        <div className="space-y-2 md:col-span-4 relative">
           <Label>Código</Label>
           <div className="flex items-center gap-2">
             <Input
@@ -258,10 +260,18 @@ export function RegistroHeader({
               value={codYear}
               onChange={(e) => handleYearChange(e.target.value)}
               placeholder="AAAA"
-              className="w-16 text-center tracking-widest text-[13px]"
+              className={cn(
+                'w-16 text-center tracking-widest text-[13px]',
+                isCodYearInvalid && 'border-destructive focus-visible:ring-destructive',
+              )}
               maxLength={4}
             />
           </div>
+          {isCodYearInvalid && (
+            <p className="text-[10px] text-destructive absolute -bottom-4 left-0">
+              O sufixo deve ter 4 dígitos
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

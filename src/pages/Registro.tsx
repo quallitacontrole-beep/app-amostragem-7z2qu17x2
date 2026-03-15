@@ -98,11 +98,15 @@ export default function Registro() {
     }
     if (ficha.cpfCnpj) {
       const digits = ficha.cpfCnpj.replace(/\D/g, '')
-      if (digits.length <= 11 && !isValidCpf(digits)) {
+      if (!isDraftSave && (digits.length < 11 || (digits.length > 11 && digits.length < 14))) {
+        toast.error('CPF/CNPJ incompleto.')
+        return false
+      }
+      if (digits.length === 11 && !isValidCpf(digits)) {
         toast.error('CPF inválido.')
         return false
       }
-      if (digits.length > 11 && !isValidCnpj(digits)) {
+      if (digits.length === 14 && !isValidCnpj(digits)) {
         toast.error('CNPJ inválido.')
         return false
       }
@@ -111,6 +115,15 @@ export default function Registro() {
     if (!isDraftSave && !ficha.codigoContrato) {
       toast.error('O Código do Contrato é obrigatório para enviar à Secretaria.')
       return false
+    }
+
+    if (ficha.codigoContrato) {
+      const parts = ficha.codigoContrato.split('/')
+      const suffix = parts[1] || ''
+      if (suffix.length !== 4) {
+        toast.error('O sufixo do Código do Contrato deve conter exatamente 4 dígitos.')
+        return false
+      }
     }
 
     for (const item of ficha.itens) {
