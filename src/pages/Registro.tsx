@@ -39,11 +39,20 @@ export default function Registro() {
 
   const existingFicha = id ? fichas.find((f) => f.id === id) : undefined
 
-  const [ficha, setFicha] = useState<Ficha>(
-    existingFicha || {
-      id: `FCH-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, '0')}`,
+  const [ficha, setFicha] = useState<Ficha>(() => {
+    if (existingFicha) return existingFicha
+
+    const currentYear = new Date().getFullYear()
+    const yearFichas = fichas.filter((f) => f.id.startsWith(`FR-${currentYear}-`))
+    const maxNum = yearFichas.reduce((max, f) => {
+      const parts = f.id.split('-')
+      const num = parseInt(parts[2] || '0', 10)
+      return num > max ? num : max
+    }, 0)
+    const newSeq = (maxNum + 1).toString().padStart(2, '0')
+
+    return {
+      id: `FR-${currentYear}-${newSeq}`,
       dataRecebimento: new Date().toISOString(),
       responsavel: formatName(user?.name || ''),
       formaRecebimento: '',
@@ -55,8 +64,8 @@ export default function Registro() {
       ocorrencias: [],
       itens: [],
       isDraft: true,
-    },
-  )
+    }
+  })
 
   useEffect(() => {
     if (existingFicha) setFicha(existingFicha)
@@ -75,7 +84,7 @@ export default function Registro() {
     )
   }
 
-  const validateForm = () => {
+  const validateForm = (isDraftSave: boolean) => {
     if (ficha.itens.length === 0) {
       toast.error('Adicione pelo menos um item.')
       return false
@@ -96,10 +105,20 @@ export default function Registro() {
       }
     }
 
+    if (!isDraftSave && !ficha.codigoContrato) {
+      toast.error('O Código do Contrato é obrigatório para enviar à Secretaria.')
+      return false
+    }
+
     for (const item of ficha.itens) {
-      if (item.protocoloWeb && !ficha.codigoContrato) {
-        toast.error('O Protocolo Web requer que o Código do Contrato seja preenchido no cabeçalho.')
-        return false
+      if (item.protocoloWeb) {
+        const parts = item.protocoloWeb.split('-')
+        if (parts.length < 2 || !parts[1]) {
+          toast.error(
+            'Protocolo Web incompleto. O Código do Contrato deve estar preenchido no cabeçalho.',
+          )
+          return false
+        }
       }
 
       const isFQ = item.setorDestino === 'Físico-Químico'
@@ -130,14 +149,14 @@ export default function Registro() {
   }
 
   const handleSaveDraft = () => {
-    if (!validateForm()) return
+    if (!validateForm(true)) return
     saveFicha(true)
     toast.success('Rascunho salvo com sucesso!')
     navigate('/')
   }
 
   const handleSubmit = () => {
-    if (!validateForm()) return
+    if (!validateForm(false)) return
     saveFicha(false)
     toast.success('Ficha enviada para a Secretaria!')
     navigate('/')

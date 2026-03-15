@@ -12,9 +12,11 @@ interface AppContextData {
   addAuditLog: (log: Omit<AuditLog, 'id' | 'timestamp'>) => void
 }
 
+const currentYear = new Date().getFullYear()
+
 const mockFichas: Ficha[] = [
   {
-    id: 'FCH-2023-001',
+    id: `FR-${currentYear}-01`,
     dataRecebimento: new Date().toISOString(),
     responsavel: 'João Amostrador',
     formaRecebimento: 'Correios',
@@ -44,7 +46,7 @@ const mockFichas: Ficha[] = [
     ],
   },
   {
-    id: 'FCH-2023-002',
+    id: `FR-${currentYear}-02`,
     dataRecebimento: new Date(Date.now() - 86400000).toISOString(),
     responsavel: 'Maria Amostradora',
     formaRecebimento: 'Balcão',
@@ -75,7 +77,7 @@ const mockAuditLogs: AuditLog[] = [
     userId: 'usr-sys',
     userName: 'Sistema',
     action: 'Criou',
-    fichaId: 'FCH-2023-001',
+    fichaId: `FR-${currentYear}-01`,
     timestamp: new Date(Date.now() - 86400000).toISOString(),
   },
 ]
@@ -151,12 +153,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           const data = await response.json()
           if (data && data.configuracoes) {
             const remoteConfig = data.configuracoes
-            // Prevent remote config from overriding the full cities database with a default tiny list
             if (remoteConfig.cidadesEstados && remoteConfig.cidadesEstados.length < 100) {
               delete remoteConfig.cidadesEstados
             }
 
-            // Merge carefully ensuring arrays exist if remote lacks them
             const safeConfig = { ...defaultConfig, ...remoteConfig }
             safeConfig.setoresAnalise = safeConfig.setoresAnalise || defaultConfig.setoresAnalise
             safeConfig.embalagens = safeConfig.embalagens || defaultConfig.embalagens

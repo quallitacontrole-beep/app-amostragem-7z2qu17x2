@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ClipboardList,
@@ -11,6 +11,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -20,6 +27,10 @@ export default function Index() {
   const { fichas } = useAppStore()
   const { user } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const PAGE_SIZE = 10
+
+  useEffect(() => setCurrentPage(1), [searchQuery])
 
   const counts = {
     triagem: fichas.filter((f) => f.status === 'Em Triagem').length,
@@ -30,16 +41,25 @@ export default function Index() {
   const filteredFichas = fichas.filter((f) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
+    const dateStr = format(new Date(f.dataRecebimento), "dd/MM/yyyy 'às' HH:mm").toLowerCase()
+    const shortDate = format(new Date(f.dataRecebimento), 'dd/MM/yyyy').toLowerCase()
+    const veryShortDate = format(new Date(f.dataRecebimento), 'dd/MM').toLowerCase()
+
     return (
       f.id.toLowerCase().includes(q) ||
       f.clienteNome.toLowerCase().includes(q) ||
-      (f.codigoContrato && f.codigoContrato.toLowerCase().includes(q))
+      (f.codigoContrato && f.codigoContrato.toLowerCase().includes(q)) ||
+      dateStr.includes(q) ||
+      shortDate.includes(q) ||
+      veryShortDate.includes(q)
     )
   })
 
-  const recentFichas = [...filteredFichas]
-    .sort((a, b) => new Date(b.dataRecebimento).getTime() - new Date(a.dataRecebimento).getTime())
-    .slice(0, searchQuery ? undefined : 5)
+  const sortedFichas = [...filteredFichas].sort(
+    (a, b) => new Date(b.dataRecebimento).getTime() - new Date(a.dataRecebimento).getTime(),
+  )
+  const totalPages = Math.ceil(sortedFichas.length / PAGE_SIZE) || 1
+  const paginatedFichas = sortedFichas.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   const canRegister = user?.role === 'Amostrador' || user?.role === 'Administrador'
   const canViewPending = user?.role === 'Secretaria' || user?.role === 'Administrador'
@@ -110,7 +130,7 @@ export default function Index() {
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID, Cliente ou Código..."
+              placeholder="Buscar por ID, Cliente, Data ou Código..."
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -119,7 +139,7 @@ export default function Index() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentFichas.map((ficha) => (
+            {paginatedFichas.map((ficha) => (
               <div
                 key={ficha.id}
                 className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 group"
@@ -133,8 +153,9 @@ export default function Index() {
                     {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    Recebido em {format(new Date(ficha.dataRecebimento), "dd/MM/yyyy 'às' HH:mm")}{' '}
-                    por {ficha.responsavel}
+                    Amostra recebida em{' '}
+                    {format(new Date(ficha.dataRecebimento), "dd/MM/yyyy 'às' HH:mm")} por{' '}
+                    {ficha.responsavel}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -152,10 +173,48 @@ export default function Index() {
                 </div>
               </div>
             ))}
-            {recentFichas.length === 0 && (
+            {paginatedFichas.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 {searchQuery ? 'Nenhum registro encontrado.' : 'Nenhuma atividade recente.'}
               </p>
+            )}
+
+            {totalPages > 1 && (
+              <div className="pt-4 border-t mt-4">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }}
+                        className={
+                          currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                        }
+                      />
+                    </PaginationItem>
+                    <span className="text-sm text-muted-foreground mx-4">
+                      Página {currentPage} de {totalPages}
+                    </span>
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }}
+                        className={
+                          currentPage === totalPages
+                            ? 'pointer-events-none opacity-50'
+                            : 'cursor-pointer'
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             )}
           </div>
         </CardContent>

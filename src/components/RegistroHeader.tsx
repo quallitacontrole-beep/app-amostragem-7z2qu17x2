@@ -10,7 +10,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Ficha } from '@/types'
 import { useAppStore } from '@/stores/main'
-import { format } from 'date-fns'
 import { useState, useRef, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { formatCpfCnpj, isValidCpf, isValidCnpj, removeAccents } from '@/lib/utils'
@@ -117,6 +116,17 @@ export function RegistroHeader({
     setFicha({ ...ficha, codigoContrato: newCod, itens: newItens })
   }
 
+  const getDateLocalISO = (isoString: string) => {
+    try {
+      const d = new Date(isoString)
+      if (isNaN(d.getTime())) return ''
+      const tzOffset = d.getTimezoneOffset() * 60000
+      return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16)
+    } catch {
+      return ''
+    }
+  }
+
   const digits = ficha.cpfCnpj.replace(/\D/g, '')
   const isCpfCnpjInvalid =
     ficha.cpfCnpj.length > 0 &&
@@ -151,9 +161,16 @@ export function RegistroHeader({
         <div className="space-y-2 md:col-span-3">
           <Label>Data Receb</Label>
           <Input
-            value={format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')}
-            disabled
-            className="bg-muted"
+            type="datetime-local"
+            value={getDateLocalISO(ficha.dataRecebimento)}
+            onChange={(e) => {
+              if (e.target.value) {
+                const newDate = new Date(e.target.value)
+                if (!isNaN(newDate.getTime())) {
+                  updateField('dataRecebimento', newDate.toISOString())
+                }
+              }
+            }}
           />
         </div>
         <div className="space-y-2 md:col-span-3">
