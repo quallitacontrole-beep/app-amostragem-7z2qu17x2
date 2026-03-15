@@ -27,6 +27,7 @@ export interface AmostraItem {
 export interface Ficha {
   id: string
   dataRecebimento: string
+  createdAt?: string
   responsavel: string
   formaRecebimento: string
   clienteNome: string

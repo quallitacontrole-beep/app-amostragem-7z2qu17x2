@@ -19,17 +19,25 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAuthStore, Role } from '@/stores/auth'
+import { useAppStore } from '@/stores/main'
 import { toast } from 'sonner'
-import { FlaskConical } from 'lucide-react'
+import { FlaskConical, Eye, EyeOff } from 'lucide-react'
 
 export default function Register() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [role, setRole] = useState<Role>('Amostrador')
-  const { register } = useAuthStore()
+  const [role, setRole] = useState<Role>('Usuário')
+  const [sector, setSector] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const { register: authRegister, user } = useAuthStore()
+  const { configuracoes } = useAppStore()
   const navigate = useNavigate()
+
+  const isAdmin = user?.role === 'Administrador'
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,7 +51,7 @@ export default function Register() {
       return toast.error('A senha deve ter pelo menos 6 caracteres.')
     }
 
-    if (register(name, email, password, role)) {
+    if (authRegister(name, email, password, role, sector)) {
       toast.success('Conta criada com sucesso! Você foi autenticado automaticamente.')
       navigate('/')
     } else {
@@ -84,39 +92,83 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Perfil de Acesso</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as Role)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um perfil" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Amostrador">Amostrador</SelectItem>
-                  <SelectItem value="Secretaria">Secretaria</SelectItem>
-                  <SelectItem value="Administrador">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="role">Perfil de Acesso</Label>
+                <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um perfil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Usuário">Usuário</SelectItem>
+                    <SelectItem value="Administrador">Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sector">Setor</Label>
+                <Select value={sector} onValueChange={setSector}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Opcional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {configuracoes.setores?.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword && isAdmin ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword && isAdmin ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>

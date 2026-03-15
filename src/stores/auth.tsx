@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { toast } from 'sonner'
 
-export type Role = 'Amostrador' | 'Secretaria' | 'Administrador'
+export type Role = 'Administrador' | 'Usuário'
 
 export interface User {
   id: string
@@ -20,7 +20,7 @@ interface AuthContextData {
   user: User | null
   isAuthenticated: boolean
   login: (email: string, pass: string) => boolean
-  register: (name: string, email: string, pass: string, role: Role) => boolean
+  register: (name: string, email: string, pass: string, role: Role, sector?: string) => boolean
   logout: () => void
   updateProfile: (name: string, oldPass: string, newPass: string) => UpdateProfileResult
   getAllUsers: () => any[]
@@ -78,15 +78,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return false
   }
 
-  const register = (name: string, email: string, pass: string, role: Role) => {
+  const register = (name: string, email: string, pass: string, role: Role, sector?: string) => {
     const users = JSON.parse(localStorage.getItem('app_users') || '[]')
     if (users.find((u: any) => u.email === email)) {
       return false // Email already in use
     }
-    const newUser = { id: Date.now().toString(), name, email, pass, role }
+    const newUser = { id: Date.now().toString(), name, email, pass, role, sector }
     users.push(newUser)
     localStorage.setItem('app_users', JSON.stringify(users))
-    setUser({ id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role })
+    setUser({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      sector: newUser.sector,
+    })
     return true
   }
 

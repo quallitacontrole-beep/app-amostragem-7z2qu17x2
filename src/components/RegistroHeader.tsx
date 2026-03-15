@@ -116,12 +116,13 @@ export function RegistroHeader({
     setFicha({ ...ficha, codigoContrato: newCod, itens: newItens })
   }
 
-  const getDateLocalISO = (isoString: string) => {
+  const getLocalDateString = (isoString: string) => {
     try {
+      if (!isoString) return ''
       const d = new Date(isoString)
       if (isNaN(d.getTime())) return ''
       const tzOffset = d.getTimezoneOffset() * 60000
-      return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16)
+      return new Date(d.getTime() - tzOffset).toISOString().split('T')[0]
     } catch {
       return ''
     }
@@ -161,11 +162,11 @@ export function RegistroHeader({
         <div className="space-y-2 md:col-span-3">
           <Label>Data Receb</Label>
           <Input
-            type="datetime-local"
-            value={getDateLocalISO(ficha.dataRecebimento)}
+            type="date"
+            value={getLocalDateString(ficha.dataRecebimento)}
             onChange={(e) => {
               if (e.target.value) {
-                const newDate = new Date(e.target.value)
+                const newDate = new Date(`${e.target.value}T00:00:00`)
                 if (!isNaN(newDate.getTime())) {
                   updateField('dataRecebimento', newDate.toISOString())
                 }

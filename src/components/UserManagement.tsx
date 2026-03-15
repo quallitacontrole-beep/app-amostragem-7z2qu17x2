@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Edit, Trash2, UserPlus } from 'lucide-react'
+import { Edit, Trash2, UserPlus, Eye, EyeOff } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -50,11 +50,12 @@ export function UserManagement() {
   const [users, setUsers] = useState<any[]>([])
   const [isModalOpen, setModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
+  const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({
     name: '',
     email: '',
     pass: '',
-    role: 'Amostrador' as Role,
+    role: 'Usuário' as Role,
     sector: '',
   })
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
@@ -69,12 +70,19 @@ export function UserManagement() {
   }, [user, isAdmin])
 
   const handleOpenModal = (u?: any) => {
+    setShowPassword(false)
     if (u) {
       setEditingUser(u)
-      setForm({ name: u.name, email: u.email, pass: '', role: u.role, sector: u.sector || '' })
+      setForm({
+        name: u.name,
+        email: u.email,
+        pass: '',
+        role: u.role || 'Usuário',
+        sector: u.sector || '',
+      })
     } else {
       setEditingUser(null)
-      setForm({ name: '', email: '', pass: '', role: 'Amostrador', sector: '' })
+      setForm({ name: '', email: '', pass: '', role: 'Usuário', sector: '' })
     }
     setModalOpen(true)
   }
@@ -190,11 +198,23 @@ export function UserManagement() {
             </div>
             <div className="space-y-2">
               <Label>{editingUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha'}</Label>
-              <Input
-                type="password"
-                value={form.pass}
-                onChange={(e) => setForm({ ...form, pass: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword && isAdmin ? 'text' : 'password'}
+                  value={form.pass}
+                  onChange={(e) => setForm({ ...form, pass: e.target.value })}
+                  className="pr-10"
+                />
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                )}
+              </div>
             </div>
             {isAdmin && (
               <>
@@ -208,8 +228,7 @@ export function UserManagement() {
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Amostrador">Amostrador</SelectItem>
-                      <SelectItem value="Secretaria">Secretaria</SelectItem>
+                      <SelectItem value="Usuário">Usuário</SelectItem>
                       <SelectItem value="Administrador">Administrador</SelectItem>
                     </SelectContent>
                   </Select>

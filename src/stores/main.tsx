@@ -18,6 +18,7 @@ const mockFichas: Ficha[] = [
   {
     id: `FR-${currentYear}-01`,
     dataRecebimento: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
     responsavel: 'João Amostrador',
     formaRecebimento: 'Correios',
     clienteNome: 'Farmácia Saúde Vital',
@@ -48,6 +49,7 @@ const mockFichas: Ficha[] = [
   {
     id: `FR-${currentYear}-02`,
     dataRecebimento: new Date(Date.now() - 86400000).toISOString(),
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
     responsavel: 'Maria Amostradora',
     formaRecebimento: 'Balcão',
     clienteNome: 'Indústria BioMed',

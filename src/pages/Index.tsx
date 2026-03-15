@@ -41,9 +41,17 @@ export default function Index() {
   const filteredFichas = fichas.filter((f) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
-    const dateStr = format(new Date(f.dataRecebimento), "dd/MM/yyyy 'às' HH:mm").toLowerCase()
-    const shortDate = format(new Date(f.dataRecebimento), 'dd/MM/yyyy').toLowerCase()
-    const veryShortDate = format(new Date(f.dataRecebimento), 'dd/MM').toLowerCase()
+
+    const timestampToSearch = f.createdAt || f.dataRecebimento
+    const dateStr = timestampToSearch
+      ? format(new Date(timestampToSearch), "dd/MM/yyyy 'às' HH:mm").toLowerCase()
+      : ''
+    const shortDate = f.dataRecebimento
+      ? format(new Date(f.dataRecebimento), 'dd/MM/yyyy').toLowerCase()
+      : ''
+    const veryShortDate = f.dataRecebimento
+      ? format(new Date(f.dataRecebimento), 'dd/MM').toLowerCase()
+      : ''
 
     return (
       f.id.toLowerCase().includes(q) ||
@@ -56,13 +64,15 @@ export default function Index() {
   })
 
   const sortedFichas = [...filteredFichas].sort(
-    (a, b) => new Date(b.dataRecebimento).getTime() - new Date(a.dataRecebimento).getTime(),
+    (a, b) =>
+      new Date(b.createdAt || b.dataRecebimento).getTime() -
+      new Date(a.createdAt || a.dataRecebimento).getTime(),
   )
   const totalPages = Math.ceil(sortedFichas.length / PAGE_SIZE) || 1
   const paginatedFichas = sortedFichas.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
-  const canRegister = user?.role === 'Amostrador' || user?.role === 'Administrador'
-  const canViewPending = user?.role === 'Secretaria' || user?.role === 'Administrador'
+  const canRegister = user?.sector === 'Amostragem' || user?.role === 'Administrador'
+  const canViewPending = user?.sector === 'Secretaria' || user?.role === 'Administrador'
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -139,40 +149,49 @@ export default function Index() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {paginatedFichas.map((ficha) => (
-              <div
-                key={ficha.id}
-                className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 group"
-              >
-                <div className="space-y-1">
-                  <Link
-                    to={`/registro/${ficha.id}`}
-                    className="font-medium text-sm text-foreground hover:text-primary transition-colors"
-                  >
-                    {ficha.id} - {ficha.clienteNome}
-                    {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">
-                    Amostra recebida em{' '}
-                    {format(new Date(ficha.dataRecebimento), "dd/MM/yyyy 'às' HH:mm")} por{' '}
-                    {ficha.responsavel}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={ficha.status} />
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Link to={`/registro/${ficha.id}`}>
-                      <ChevronRight className="h-4 w-4" />
+            {paginatedFichas.map((ficha) => {
+              const dataReceb = ficha.dataRecebimento
+                ? format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')
+                : ''
+              const createdAtDate = ficha.createdAt || ficha.dataRecebimento
+              const dataCriacao = createdAtDate
+                ? format(new Date(createdAtDate), "dd/MM/yyyy 'às' HH:mm")
+                : ''
+
+              return (
+                <div
+                  key={ficha.id}
+                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 group"
+                >
+                  <div className="space-y-1">
+                    <Link
+                      to={`/registro/${ficha.id}`}
+                      className="font-medium text-sm text-foreground hover:text-primary transition-colors"
+                    >
+                      {ficha.id} - {ficha.clienteNome}
+                      {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
                     </Link>
-                  </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Amostra recebida em {dataReceb} | Ficha criada em {dataCriacao} por{' '}
+                      {ficha.responsavel}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={ficha.status} />
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Link to={`/registro/${ficha.id}`}>
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             {paginatedFichas.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 {searchQuery ? 'Nenhum registro encontrado.' : 'Nenhuma atividade recente.'}

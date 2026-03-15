@@ -54,6 +54,7 @@ export default function Registro() {
     return {
       id: `FR-${currentYear}-${newSeq}`,
       dataRecebimento: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       responsavel: formatName(user?.name || ''),
       formaRecebimento: '',
       clienteNome: '',
@@ -71,12 +72,14 @@ export default function Registro() {
     if (existingFicha) setFicha(existingFicha)
   }, [existingFicha])
 
-  if (user?.role !== 'Amostrador' && user?.role !== 'Administrador') {
+  if (user?.sector !== 'Amostragem' && user?.role !== 'Administrador') {
     return (
       <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
         <AlertTriangle className="h-10 w-10 text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
-        <p>Apenas usuários com perfil de Amostrador podem registrar novas fichas.</p>
+        <p>
+          Apenas usuários do setor de Amostragem ou Administradores podem registrar novas fichas.
+        </p>
         <Button variant="outline" className="mt-6" onClick={() => navigate('/')}>
           Voltar ao Dashboard
         </Button>
