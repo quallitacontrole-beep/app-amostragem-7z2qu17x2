@@ -91,7 +91,7 @@ export function RegistroHeader({
       setFicha({
         ...ficha,
         clienteNome: 'Cliente Simulado LTDA',
-        cpfCnpj: '00.000.000/0001-00',
+        cpfCnpj: '00.000.000/0001-91',
         cidadeUf: 'São Paulo-SP',
       })
       setIsSimulating(false)
@@ -128,9 +128,9 @@ export function RegistroHeader({
     }
   }
 
-  const digits = ficha.cpfCnpj.replace(/\D/g, '')
+  const digits = (ficha.cpfCnpj || '').replace(/\D/g, '')
   const isCpfCnpjInvalid =
-    ficha.cpfCnpj.length > 0 &&
+    digits.length > 0 &&
     ((digits.length === 11 && !isValidCpf(digits)) ||
       (digits.length === 14 && !isValidCnpj(digits)))
 
@@ -225,7 +225,7 @@ export function RegistroHeader({
           <Label>CPF/CNPJ</Label>
           <Input
             placeholder="CPF/CNPJ"
-            value={ficha.cpfCnpj}
+            value={ficha.cpfCnpj ? formatCpfCnpj(ficha.cpfCnpj) : ''}
             onChange={handleCpfCnpjChange}
             className={cn(isCpfCnpjInvalid && 'border-destructive focus-visible:ring-destructive')}
           />

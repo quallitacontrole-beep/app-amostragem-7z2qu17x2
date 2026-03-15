@@ -69,9 +69,22 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   }
 
   const handleSaveParcial = () => {
-    onSave(localFicha)
+    let updatedFicha = { ...localFicha }
+    const hasOcorrencias = localFicha.ocorrencias && localFicha.ocorrencias.length > 0
+    const allOccsResolved = hasOcorrencias && localFicha.ocorrencias.every((o) => o.resolvida)
+
+    if (allOccsResolved && localFicha.status === 'Aguardando Secretaria') {
+      updatedFicha.status = 'Em Triagem'
+    }
+
+    onSave(updatedFicha)
     onClose()
-    toast.info('Alterações salvas.')
+
+    if (updatedFicha.status === 'Em Triagem') {
+      toast.success('Ocorrências resolvidas! Ficha retornou para Triagem.')
+    } else {
+      toast.info('Alterações salvas.')
+    }
   }
 
   return (

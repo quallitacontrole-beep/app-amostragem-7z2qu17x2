@@ -154,7 +154,12 @@ export default function Registro() {
 
   const saveFicha = (isDraftSave: boolean, ocorrencias?: Ocorrencia[]) => {
     const action = id ? 'Atualizou' : 'Criou'
-    const status = isDraftSave ? 'Em Triagem' : 'Aguardando Secretaria'
+    let status: Ficha['status'] = isDraftSave ? 'Em Triagem' : 'Aguardando Secretaria'
+
+    if (user?.sector === 'Secretaria' && ficha.status) {
+      status = ficha.status
+    }
+
     const finalFicha = { ...ficha, status, isDraft: isDraftSave }
     if (ocorrencias)
       finalFicha.ocorrencias = id ? [...ficha.ocorrencias, ...ocorrencias] : ocorrencias
@@ -164,7 +169,7 @@ export default function Registro() {
     } else {
       addFicha(finalFicha)
     }
-    addAuditLog({ userId: user.id, userName: user.name, action, fichaId: ficha.id })
+    addAuditLog({ userId: user!.id, userName: user!.name, action, fichaId: ficha.id })
   }
 
   const handleSaveDraft = () => {
@@ -177,7 +182,11 @@ export default function Registro() {
   const handleSubmit = () => {
     if (!validateForm(false)) return
     saveFicha(false)
-    toast.success('Ficha enviada para a Secretaria!')
+    if (user?.sector === 'Secretaria') {
+      toast.success('Alterações salvas com sucesso!')
+    } else {
+      toast.success('Ficha enviada para a Secretaria!')
+    }
     navigate('/')
   }
 
@@ -197,8 +206,6 @@ export default function Registro() {
     navigate('/')
   }
 
-  const isSecretariaReadOnly = user?.sector === 'Secretaria' && user?.role !== 'Administrador'
-
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in">
       <div>
@@ -215,19 +222,26 @@ export default function Registro() {
         codigoContrato={ficha.codigoContrato}
       />
 
-      {!isSecretariaReadOnly && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem]">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem]">
+        {user?.sector !== 'Secretaria' && (
           <Button variant="destructive" className="mr-auto" onClick={() => setOccModalOpen(true)}>
             <AlertTriangle className="mr-2 h-4 w-4" /> Contrato Indefinido
           </Button>
+        )}
+        {user?.sector !== 'Secretaria' && (
           <Button variant="outline" onClick={handleSaveDraft}>
             <Save className="mr-2 h-4 w-4" /> Salvar Rascunho
           </Button>
-          <Button onClick={handleSubmit}>
-            <Send className="mr-2 h-4 w-4" /> Enviar Secretaria
-          </Button>
-        </div>
-      )}
+        )}
+        <Button onClick={handleSubmit}>
+          {user?.sector === 'Secretaria' ? (
+            <Save className="mr-2 h-4 w-4" />
+          ) : (
+            <Send className="mr-2 h-4 w-4" />
+          )}
+          {user?.sector === 'Secretaria' ? 'Salvar Alterações' : 'Enviar Secretaria'}
+        </Button>
+      </div>
 
       <Dialog open={isOccModalOpen} onOpenChange={setOccModalOpen}>
         <DialogContent>
