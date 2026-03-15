@@ -20,10 +20,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Props {
   ficha: Ficha | null
@@ -42,65 +42,63 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
   if (!localFicha) return null
 
-  const isSecretaria = user?.sector === 'Secretaria' || user?.role === 'Administrador'
+  const isSecretaria = user?.sector === 'Secretaria'
 
-  const updateItem = (id: string, field: keyof AmostraItem, value: string) => {
-    setLocalFicha({
-      ...localFicha,
-      itens: localFicha.itens.map((it) => (it.id === id ? { ...it, [field]: value } : it)),
-    })
+  const updateItem = (id: string, field: keyof AmostraItem, val: string) => {
+    setLocalFicha((prev) =>
+      prev
+        ? { ...prev, itens: prev.itens.map((it) => (it.id === id ? { ...it, [field]: val } : it)) }
+        : null,
+    )
   }
 
-  const toggleOcorrencia = (id: string, resolvida: boolean) => {
-    setLocalFicha({
-      ...localFicha,
-      ocorrencias: localFicha.ocorrencias.map((o) => (o.id === id ? { ...o, resolvida } : o)),
-    })
+  const toggleOcc = (id: string, resolvida: boolean) => {
+    setLocalFicha((prev) =>
+      prev
+        ? {
+            ...prev,
+            ocorrencias: prev.ocorrencias.map((o) => (o.id === id ? { ...o, resolvida } : o)),
+          }
+        : null,
+    )
   }
 
   const isContratoValidado = Boolean(
-    localFicha.codigoContrato &&
-    localFicha.codigoContrato.includes('/') &&
-    localFicha.codigoContrato.split('/')[0] &&
+    localFicha.codigoContrato?.includes('/') &&
     localFicha.codigoContrato.split('/')[1]?.length === 4,
   )
   const isOsVinculado =
-    localFicha.itens.length > 0 &&
-    localFicha.itens.every((it) => it.ordemServico && it.ordemServico.includes('-'))
+    localFicha.itens.length > 0 && localFicha.itens.every((it) => it.ordemServico?.includes('-'))
   const isOcorrenciasZeradas = localFicha.ocorrencias.every((o) => o.resolvida)
   const isVistoSecretaria = !!localFicha.vistoSecretaria
 
-  const canConcluir = () =>
+  const canConcluir =
     isContratoValidado && isOsVinculado && isOcorrenciasZeradas && isVistoSecretaria
 
   const handleFinalizar = () => {
-    if (!canConcluir())
-      return toast.error('Conclua todos os itens do checklist antes de finalizar.')
+    if (!canConcluir) return toast.error('Conclua todos os itens do checklist antes de finalizar.')
     onSave({ ...localFicha, status: 'Finalizada' })
     onClose()
     toast.success('Ficha Finalizada!')
   }
 
   const handleSaveParcial = () => {
-    let updatedFicha = { ...localFicha }
-    const hasOcorrencias = localFicha.ocorrencias && localFicha.ocorrencias.length > 0
-    const allOccsResolved = hasOcorrencias && localFicha.ocorrencias.every((o) => o.resolvida)
-
-    if (allOccsResolved && localFicha.status === 'Aguardando Secretaria') {
-      updatedFicha.status = 'Em Triagem'
+    let up = { ...localFicha }
+    if (
+      localFicha.ocorrencias?.length > 0 &&
+      isOcorrenciasZeradas &&
+      localFicha.status === 'Aguardando Secretaria'
+    ) {
+      up.status = 'Em Triagem'
     }
-
-    onSave(updatedFicha)
+    onSave(up)
     onClose()
-
-    if (updatedFicha.status === 'Em Triagem') {
+    if (up.status === 'Em Triagem')
       toast.success('Ocorrências resolvidas! Ficha retornou para Triagem.')
-    } else {
-      toast.info('Alterações salvas.')
-    }
+    else toast.info('Alterações salvas.')
   }
 
-  const ChecklistItem = ({ label, ok }: { label: string; ok: boolean }) => (
+  const CheckItem = ({ label, ok }: { label: string; ok: boolean }) => (
     <div className="flex items-center gap-2">
       {ok ? (
         <CheckCircle2 className="w-5 h-5 text-success" />
@@ -121,53 +119,87 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Código do Contrato</Label>
-                <Input
-                  value={localFicha.codigoContrato || ''}
-                  onChange={(e) => setLocalFicha({ ...localFicha, codigoContrato: e.target.value })}
-                  placeholder="Insira o contrato..."
-                />
-              </div>
+            <div className="space-y-2 max-w-[50%]">
+              <Label>Código do Contrato</Label>
+              <Input
+                value={localFicha.codigoContrato || ''}
+                onChange={(e) => setLocalFicha({ ...localFicha, codigoContrato: e.target.value })}
+                placeholder="Insira o contrato..."
+              />
             </div>
 
-            <div className="bg-card p-4 rounded-md border shadow-sm mt-2">
+            <div className="bg-card p-4 rounded-md border shadow-sm">
               <Label className="text-base font-semibold block mb-4">Checklist de Validação</Label>
               <div className="grid sm:grid-cols-2 gap-4">
-                <ChecklistItem label="Contrato Validado" ok={isContratoValidado} />
-                <ChecklistItem label="Vínculo de OS" ok={isOsVinculado} />
-                <ChecklistItem label="Ocorrências Zeradas" ok={isOcorrenciasZeradas} />
-                <ChecklistItem label="Visto da Secretaria" ok={isVistoSecretaria} />
+                <CheckItem label="Contrato Validado" ok={isContratoValidado} />
+                <CheckItem label="Vínculo de OS" ok={isOsVinculado} />
+                <CheckItem label="Ocorrências Zeradas" ok={isOcorrenciasZeradas} />
+                <CheckItem label="Visto da Secretaria" ok={isVistoSecretaria} />
               </div>
-              <div className="mt-5 pt-4 border-t flex justify-end">
-                <Button
-                  size="sm"
-                  variant={isVistoSecretaria ? 'secondary' : 'outline'}
-                  disabled={!isSecretaria || isVistoSecretaria}
-                  onClick={() => setLocalFicha({ ...localFicha, vistoSecretaria: true })}
-                >
-                  <ShieldCheck className="w-4 h-4 mr-2" />
-                  {isVistoSecretaria ? 'Informações Validadas' : 'Validar Informações'}
-                </Button>
-              </div>
+              {isSecretaria && (
+                <div className="mt-5 pt-4 border-t flex justify-end">
+                  <Button
+                    size="sm"
+                    variant={isVistoSecretaria ? 'secondary' : 'outline'}
+                    disabled={isVistoSecretaria}
+                    onClick={() => setLocalFicha({ ...localFicha, vistoSecretaria: true })}
+                  >
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                    {isVistoSecretaria ? 'Informações Validadas' : 'Validar Informações'}
+                  </Button>
+                </div>
+              )}
             </div>
 
             {localFicha.ocorrencias.length > 0 && (
-              <div className="space-y-3 bg-destructive/5 p-4 rounded-md border border-destructive/20">
-                <Label className="text-destructive font-bold text-base">Ocorrências</Label>
+              <div
+                className={cn(
+                  'space-y-3 p-4 rounded-md border',
+                  isOcorrenciasZeradas
+                    ? 'bg-success/5 border-success/20'
+                    : 'bg-destructive/5 border-destructive/20',
+                )}
+              >
+                <Label
+                  className={cn(
+                    'font-bold text-base',
+                    isOcorrenciasZeradas ? 'text-success' : 'text-destructive',
+                  )}
+                >
+                  {isOcorrenciasZeradas ? 'Ocorrências Resolvidas' : 'Pendências em Aberto'}
+                </Label>
                 {localFicha.ocorrencias.map((occ) => (
                   <div
                     key={occ.id}
-                    className="flex items-center justify-between bg-background p-3 rounded border"
+                    className={cn(
+                      'flex flex-col gap-3 bg-background p-4 rounded border shadow-sm',
+                      occ.resolvida ? 'border-success/30' : 'border-destructive/30',
+                    )}
                   >
-                    <span className="text-sm">{occ.descricao}</span>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs">Resolvida?</Label>
-                      <Switch
-                        checked={occ.resolvida}
-                        onCheckedChange={(v) => toggleOcorrencia(occ.id, v)}
-                      />
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Descrição da Pendência
+                      </Label>
+                      <p className="text-sm font-medium">{occ.descricao}</p>
+                    </div>
+                    <div className="flex justify-end border-t pt-2 mt-1">
+                      {occ.resolvida ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleOcc(occ.id, false)}
+                        >
+                          Reabrir Ocorrência
+                        </Button>
+                      ) : (
+                        <Button
+                          className="bg-success hover:bg-success/90 text-success-foreground"
+                          size="sm"
+                          onClick={() => toggleOcc(occ.id, true)}
+                        >
+                          Resolver Ocorrência
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -201,7 +233,12 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                         </TableCell>
                         <TableCell>
                           <Input
-                            className="h-8 text-sm border-warning focus-visible:ring-warning"
+                            className={cn(
+                              'h-8 text-sm',
+                              !it.ordemServico?.includes('-')
+                                ? 'border-warning focus-visible:ring-warning'
+                                : '',
+                            )}
                             value={it.ordemServico || ''}
                             onChange={(e) => updateItem(it.id, 'ordemServico', e.target.value)}
                             placeholder="Obrigatório"
@@ -222,10 +259,8 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
           </Button>
           <Button
             onClick={handleFinalizar}
-            disabled={!canConcluir()}
-            className={
-              canConcluir() ? 'bg-success hover:bg-success/90 text-success-foreground' : ''
-            }
+            disabled={!canConcluir}
+            className={canConcluir ? 'bg-success hover:bg-success/90 text-success-foreground' : ''}
           >
             Finalizar Ficha
           </Button>
