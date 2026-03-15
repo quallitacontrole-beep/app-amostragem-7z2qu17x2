@@ -181,7 +181,7 @@ export default function Index() {
             {canRegister && (
               <Button asChild size="default" className="shadow-md flex-1 sm:flex-initial">
                 <Link to="/registro">
-                  Registrar <ArrowRight className="ml-2 h-4 w-4" />
+                  Nova Ficha <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             )}

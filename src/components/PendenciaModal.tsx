@@ -95,6 +95,14 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     toggleOcc(occId, true, resp)
   }
 
+  const hasUnconfirmedTagChange = localFicha.itens.some((it) => {
+    const oit = ficha?.itens.find((i) => i.id === it.id)
+    const isChangedNow =
+      oit && oit.ordemServico && it.ordemServico && oit.ordemServico !== it.ordemServico
+    const wasChangedBefore = it.trocaEtiquetaSolicitada && !it.trocaEtiquetaConfirmada
+    return isChangedNow || wasChangedBefore
+  })
+
   const isContratoValidado = Boolean(
     localFicha.codigoContrato?.includes('/') &&
     localFicha.codigoContrato.split('/')[1]?.length === 4,
@@ -105,7 +113,11 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   const isVistoSecretaria = !!localFicha.vistoSecretaria
 
   const canConcluir =
-    isContratoValidado && isOsVinculado && isOcorrenciasZeradas && isVistoSecretaria
+    isContratoValidado &&
+    isOsVinculado &&
+    isOcorrenciasZeradas &&
+    isVistoSecretaria &&
+    !hasUnconfirmedTagChange
 
   const prepareFichaForSave = (targetStatus?: Ficha['status']) => {
     if (!ficha) return localFicha
@@ -113,19 +125,17 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     const updatedItems = localFicha.itens.map((lit) => {
       const oit = ficha.itens.find((i) => i.id === lit.id)
       if (oit && oit.ordemServico && lit.ordemServico && oit.ordemServico !== lit.ordemServico) {
-        if (!lit.trocaEtiquetaConfirmada) {
-          addNotification({
-            userId: localFicha.responsavel,
-            message: `Ordem de Troca de Etiqueta: A Ordem de Serviço da amostra "${lit.descricao}" foi alterada para ${lit.ordemServico}.`,
-            fichaId: localFicha.id,
-            type: 'tag_change',
-          })
-          return {
-            ...lit,
-            trocaEtiquetaSolicitada: true,
-            trocaEtiquetaConfirmada: false,
-            ordemServicoAnterior: oit.ordemServico,
-          }
+        addNotification({
+          userId: localFicha.responsavel,
+          message: `Ordem de Troca de Etiqueta: A Ordem de Serviço da amostra "${lit.descricao}" foi alterada para ${lit.ordemServico}.`,
+          fichaId: localFicha.id,
+          type: 'tag_change',
+        })
+        return {
+          ...lit,
+          trocaEtiquetaSolicitada: true,
+          trocaEtiquetaConfirmada: false,
+          ordemServicoAnterior: oit.ordemServico,
         }
       }
       return lit
@@ -190,6 +200,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                 <CheckItem label="Vínculo de OS" ok={isOsVinculado} />
                 <CheckItem label="Ocorrências Zeradas" ok={isOcorrenciasZeradas} />
                 <CheckItem label="Visto da Secretaria" ok={isVistoSecretaria} />
+                <CheckItem label="Etiquetas Atualizadas" ok={!hasUnconfirmedTagChange} />
               </div>
               {isSecretaria && (
                 <div className="mt-5 pt-4 border-t flex flex-col sm:flex-row justify-end">
