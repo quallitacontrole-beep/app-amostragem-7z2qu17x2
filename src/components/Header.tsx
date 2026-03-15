@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Search, UserCircle, LogOut, Settings2, AlertCircle } from 'lucide-react'
+import { Bell, Search, UserCircle, LogOut, Settings2, AlertCircle, Info, Tag } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { Input } from '@/components/ui/input'
@@ -19,23 +19,43 @@ import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
+const formatName = (name: string) => {
+  if (!name) return ''
+  return name
+    .split(/[.\-_]/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}
+
 export function Header() {
-  const { fichas } = useAppStore()
+  const { fichas, notifications, markNotificationAsRead } = useAppStore()
   const { user, logout } = useAuthStore()
 
   const isSecretaria = user?.sector === 'Secretaria' || user?.role === 'Administrador'
+  const userNameFormatted = formatName(user?.name || '')
 
-  const pendingFichas = fichas
-    .filter((f) => f.status === 'Aguardando Secretaria')
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt || b.dataRecebimento).getTime() -
-        new Date(a.createdAt || a.dataRecebimento).getTime(),
+  const pendingFichas = isSecretaria
+    ? fichas
+        .filter((f) => f.status === 'Aguardando Secretaria' || f.status === 'Aguardando Validação')
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt || b.dataRecebimento).getTime() -
+            new Date(a.createdAt || a.dataRecebimento).getTime(),
+        )
+    : []
+
+  const userNotifs = notifications
+    .filter(
+      (n) => !n.read && (n.userId === user?.name || n.userId === userNameFormatted || !n.userId),
     )
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
-  const relevantNotifications = isSecretaria ? pendingFichas : []
-  const pendingCount = relevantNotifications.length
+  const allItems = [
+    ...userNotifs.map((n) => ({ type: 'notif' as const, data: n, id: n.id })),
+    ...pendingFichas.map((f) => ({ type: 'ficha' as const, data: f, id: f.id })),
+  ]
 
+  const pendingCount = allItems.length
   const [hasUnread, setHasUnread] = useState(false)
   const prevCountRef = useRef(pendingCount)
 
@@ -92,31 +112,66 @@ export function Header() {
                 </div>
               ) : (
                 <div className="flex flex-col">
-                  {relevantNotifications.map((f) => (
-                    <Link
-                      key={f.id}
-                      to={`/registro/${f.id}`}
-                      className="flex flex-col gap-1 p-4 border-b hover:bg-muted/50 transition-colors last:border-0"
-                    >
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-                        <div className="flex flex-col gap-1">
-                          <span className="font-medium text-sm leading-tight">
-                            Nova pendência: {f.id}
-                          </span>
-                          <span className="text-xs text-muted-foreground line-clamp-2">
-                            Aguardando Secretaria - Cliente: {f.clienteNome}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/70 mt-1">
-                            {format(
-                              new Date(f.createdAt || f.dataRecebimento),
-                              "dd/MM/yyyy 'às' HH:mm",
+                  {allItems.map((item) => {
+                    if (item.type === 'notif') {
+                      const n = item.data
+                      const isTag = n.type === 'tag_change'
+                      return (
+                        <Link
+                          key={n.id}
+                          to={`/registro/${n.fichaId}`}
+                          onClick={() => markNotificationAsRead(n.id)}
+                          className="flex flex-col gap-1 p-4 border-b hover:bg-muted/50 transition-colors last:border-0"
+                        >
+                          <div className="flex items-start gap-3">
+                            {isTag ? (
+                              <Tag className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                            ) : (
+                              <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
                             )}
-                          </span>
+                            <div className="flex flex-col gap-1">
+                              <span className="font-medium text-sm leading-tight">
+                                {isTag ? 'Ação Necessária' : 'Nova Mensagem'} - {n.fichaId}
+                              </span>
+                              <span className="text-xs text-muted-foreground line-clamp-3">
+                                {n.message}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground/70 mt-1">
+                                {format(new Date(n.createdAt), "dd/MM/yyyy 'às' HH:mm")}
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+                      )
+                    }
+
+                    const f = item.data
+                    return (
+                      <Link
+                        key={`ficha-${f.id}`}
+                        to={`/registro/${f.id}`}
+                        className="flex flex-col gap-1 p-4 border-b hover:bg-muted/50 transition-colors last:border-0"
+                      >
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium text-sm leading-tight">
+                              Ficha Pendente: {f.id}
+                            </span>
+                            <span className="text-xs text-muted-foreground line-clamp-2">
+                              {f.status} - Cliente: {f.clienteNome}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground/70 mt-1">
+                              {format(
+                                new Date(f.createdAt || f.dataRecebimento),
+                                "dd/MM/yyyy 'às' HH:mm",
+                              )}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    )
+                  })}
                 </div>
               )}
             </ScrollArea>

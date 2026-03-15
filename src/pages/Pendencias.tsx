@@ -37,7 +37,9 @@ export default function Pendencias() {
     )
   }
 
-  const pendentes = fichas.filter((f) => f.status === 'Aguardando Secretaria')
+  const pendentes = fichas.filter(
+    (f) => f.status === 'Aguardando Secretaria' || f.status === 'Aguardando Validação',
+  )
 
   const filteredData = {
     ocorrencias: pendentes.filter((f) => f.ocorrencias.some((o) => !o.resolvida)),
@@ -109,7 +111,7 @@ export default function Pendencias() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Pendências</h1>
         <p className="text-muted-foreground mt-1">
-          Gerenciamento de fichas aguardando atuação da secretaria.
+          Gerenciamento de fichas aguardando atuação da secretaria ou validação final.
         </p>
       </div>
 

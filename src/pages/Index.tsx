@@ -38,8 +38,10 @@ export default function Index() {
 
   const counts = {
     triagem: fichas.filter((f) => f.status === 'Em Triagem').length,
-    secretaria: fichas.filter((f) => f.status === 'Aguardando Secretaria').length,
-    resolvida: fichas.filter((f) => f.status === 'Resolvida').length,
+    secretaria: fichas.filter(
+      (f) => f.status === 'Aguardando Secretaria' || f.status === 'Aguardando Validação',
+    ).length,
+    resolvida: fichas.filter((f) => f.status === 'Finalizada').length,
   }
 
   const filteredFichas = fichas.filter((f) => {
@@ -85,6 +87,10 @@ export default function Index() {
       addAuditLog({ userId: user.id, userName: user.name, action: 'Atualizou', fichaId: ficha.id })
     }
   }
+
+  const pendingFichasForSecretaria = fichas.filter(
+    (f) => f.status === 'Aguardando Secretaria' || f.status === 'Aguardando Validação',
+  )
 
   return (
     <div className="space-y-8 animate-fade-in pb-10">
@@ -136,7 +142,7 @@ export default function Index() {
         </Card>
         <Card className="border-success/20 bg-success/5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-success">Resolvidas</CardTitle>
+            <CardTitle className="text-sm font-medium text-success">Finalizadas</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
@@ -155,39 +161,40 @@ export default function Index() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            {fichas.filter((f) => f.status === 'Aguardando Secretaria').length === 0 ? (
+            {pendingFichasForSecretaria.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Nenhuma pendência encontrada para o seu setor.
               </p>
             ) : (
               <div className="space-y-3">
-                {fichas
-                  .filter((f) => f.status === 'Aguardando Secretaria')
-                  .map((ficha) => {
-                    const dataReceb = ficha.dataRecebimento
-                      ? format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')
-                      : ''
-                    return (
-                      <div
-                        key={ficha.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-md border bg-card hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="space-y-1">
-                          <div className="font-medium text-sm">
+                {pendingFichasForSecretaria.map((ficha) => {
+                  const dataReceb = ficha.dataRecebimento
+                    ? format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')
+                    : ''
+                  return (
+                    <div
+                      key={ficha.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-md border bg-card hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">
                             {ficha.id} - {ficha.clienteNome}
                             {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Recebida em {dataReceb} por {ficha.responsavel}
-                          </p>
+                          </span>
+                          <StatusBadge status={ficha.status} className="scale-90 origin-left" />
                         </div>
-                        <Button size="sm" onClick={() => setSelectedFicha(ficha)}>
-                          <FileEdit className="h-4 w-4 mr-2" />
-                          Tratar Pendência
-                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Recebida em {dataReceb} por {ficha.responsavel}
+                        </p>
                       </div>
-                    )
-                  })}
+                      <Button size="sm" onClick={() => setSelectedFicha(ficha)}>
+                        <FileEdit className="h-4 w-4 mr-2" />
+                        Tratar Pendência
+                      </Button>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </CardContent>

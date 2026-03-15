@@ -65,6 +65,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       if (!prev) return null
       return {
         ...prev,
+        status: resolvida ? 'Respondida pela Secretaria' : prev.status,
         ocorrencias: prev.ocorrencias.map((o) => {
           if (o.id === id) {
             const updated = { ...o, resolvida }
@@ -78,8 +79,9 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     if (resolvida && resposta && localFicha) {
       addNotification({
         userId: localFicha.responsavel,
-        message: `A pendência na ficha ${localFicha.id} foi respondida: "${resposta}"`,
+        message: `A pendência na ficha ${localFicha.id} foi respondida pela Secretaria.`,
         fichaId: localFicha.id,
+        type: 'info',
       })
     }
   }
@@ -105,16 +107,46 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   const canConcluir =
     isContratoValidado && isOsVinculado && isOcorrenciasZeradas && isVistoSecretaria
 
+  const prepareFichaForSave = (targetStatus?: Ficha['status']) => {
+    if (!ficha) return localFicha
+
+    const updatedItems = localFicha.itens.map((lit) => {
+      const oit = ficha.itens.find((i) => i.id === lit.id)
+      if (oit && oit.ordemServico && lit.ordemServico && oit.ordemServico !== lit.ordemServico) {
+        if (!lit.trocaEtiquetaConfirmada) {
+          addNotification({
+            userId: localFicha.responsavel,
+            message: `A Ordem de Serviço da amostra "${lit.descricao}" foi alterada. Por favor, confirme a troca de etiqueta.`,
+            fichaId: localFicha.id,
+            type: 'tag_change',
+          })
+          return {
+            ...lit,
+            trocaEtiquetaSolicitada: true,
+            trocaEtiquetaConfirmada: false,
+            ordemServicoAnterior: oit.ordemServico,
+          }
+        }
+      }
+      return lit
+    })
+
+    return {
+      ...localFicha,
+      itens: updatedItems,
+      status: targetStatus || localFicha.status,
+    }
+  }
+
   const handleFinalizar = () => {
     if (!canConcluir) return toast.error('Conclua todos os itens do checklist antes de finalizar.')
-    onSave({ ...localFicha, status: 'Finalizada' })
+    onSave(prepareFichaForSave('Finalizada') as Ficha)
     onClose()
     toast.success('Ficha Finalizada com sucesso!')
   }
 
   const handleSaveParcial = () => {
-    let up = { ...localFicha }
-    onSave(up)
+    onSave(prepareFichaForSave() as Ficha)
     onClose()
     toast.info('Alterações salvas parcialmente.')
   }

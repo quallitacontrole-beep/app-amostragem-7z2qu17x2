@@ -7,6 +7,10 @@ export function StatusBadge({ status, className }: { status: StatusFicha; classN
     Finalizada: 'bg-success/15 text-success hover:bg-success/25 border-success/20',
     'Aguardando Secretaria':
       'bg-warning/15 text-warning-foreground hover:bg-warning/25 border-warning/20',
+    'Aguardando Validação':
+      'bg-purple-500/15 text-purple-600 hover:bg-purple-500/25 border-purple-500/20',
+    'Respondida pela Secretaria':
+      'bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 border-blue-500/20',
     'Em Triagem': 'bg-primary/15 text-primary hover:bg-primary/25 border-primary/20',
   }
 

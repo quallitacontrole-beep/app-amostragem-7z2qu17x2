@@ -1,4 +1,9 @@
-export type StatusFicha = 'Em Triagem' | 'Aguardando Secretaria' | 'Finalizada'
+export type StatusFicha =
+  | 'Em Triagem'
+  | 'Aguardando Secretaria'
+  | 'Respondida pela Secretaria'
+  | 'Aguardando Validação'
+  | 'Finalizada'
 
 export interface Ocorrencia {
   id: string
@@ -23,6 +28,9 @@ export interface AmostraItem {
   fatorDiluicao?: string
   protocoloWeb?: string
   ordemServico?: string
+  trocaEtiquetaSolicitada?: boolean
+  trocaEtiquetaConfirmada?: boolean
+  ordemServicoAnterior?: string
 }
 
 export interface Ficha {
@@ -71,4 +79,5 @@ export interface AppNotification {
   fichaId: string
   read: boolean
   createdAt: string
+  type?: 'info' | 'tag_change'
 }

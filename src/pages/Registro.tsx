@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Send, AlertTriangle, ShieldAlert } from 'lucide-react'
+import { Save, Send, AlertTriangle, ShieldAlert, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Ficha, Ocorrencia } from '@/types'
@@ -20,14 +20,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { isValidCpf, isValidCnpj } from '@/lib/utils'
-
-const formatName = (name: string) => {
-  if (!name) return 'Amostrador'
-  return name
-    .split(/[.\-_]/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(' ')
-}
 
 export default function Registro() {
   const { id } = useParams()
@@ -55,7 +47,7 @@ export default function Registro() {
       id: `FR-${currentYear}-${newSeq}`,
       dataRecebimento: new Date().toISOString(),
       createdAt: new Date().toISOString(),
-      responsavel: formatName(user?.name || ''),
+      responsavel: user?.name || 'Amostrador',
       formaRecebimento: '',
       clienteNome: '',
       cpfCnpj: '',
@@ -173,38 +165,25 @@ export default function Registro() {
 
   const saveFicha = (isDraftSave: boolean, ocorrencias?: Ocorrencia[]) => {
     const action = id ? 'Atualizou' : 'Criou'
-    let status: Ficha['status'] = isDraftSave ? 'Em Triagem' : 'Aguardando Secretaria'
+    let status = ficha.status
+
+    if (isDraftSave) {
+      status = 'Em Triagem'
+    } else {
+      if (user?.sector === 'Amostragem' || user?.role === 'Administrador') {
+        if (
+          ficha.status === 'Respondida pela Secretaria' ||
+          ficha.status === 'Aguardando Validação'
+        ) {
+          status = 'Aguardando Validação'
+        } else {
+          status = 'Aguardando Secretaria'
+        }
+      }
+    }
 
     if (user?.sector === 'Secretaria' && ficha.status) {
       status = (ficha.status as any) === 'Resolvida' ? 'Finalizada' : ficha.status
-    }
-
-    const hasFullContract = Boolean(
-      ficha.codigoContrato &&
-      ficha.codigoContrato.includes('/') &&
-      ficha.codigoContrato.split('/')[0] &&
-      ficha.codigoContrato.split('/')[1]?.length === 4,
-    )
-
-    const allItemsHaveValidOS =
-      ficha.itens.length > 0 &&
-      ficha.itens.every((i) => i.ordemServico && i.ordemServico.includes('-'))
-
-    const occs = ocorrencias
-      ? id
-        ? [...ficha.ocorrencias, ...ocorrencias]
-        : ocorrencias
-      : ficha.ocorrencias
-    const allOccsResolved = occs?.every((o) => o.resolvida) ?? true
-
-    if (status === 'Finalizada') {
-      if (!hasFullContract || !allItemsHaveValidOS || !allOccsResolved || !ficha.vistoSecretaria) {
-        status = 'Aguardando Secretaria'
-      }
-    } else if (status === 'Aguardando Secretaria') {
-      if (hasFullContract && allItemsHaveValidOS && allOccsResolved && ficha.vistoSecretaria) {
-        status = 'Finalizada'
-      }
     }
 
     const finalFicha = { ...ficha, status, isDraft: isDraftSave }
@@ -253,7 +232,20 @@ export default function Registro() {
     navigate('/')
   }
 
+  const handleConfirmarTroca = (itemId: string) => {
+    const newItens = ficha.itens.map((i) =>
+      i.id === itemId ? { ...i, trocaEtiquetaConfirmada: true } : i,
+    )
+    const updated = { ...ficha, itens: newItens }
+    setFicha(updated)
+    updateFicha(updated)
+    toast.success('Confirmação de troca registrada com sucesso!')
+  }
+
   const hasResponses = ficha.ocorrencias.some((o) => o.respostaSecretaria)
+  const itemsNeedingTagChange = ficha.itens.filter(
+    (i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
+  )
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in">
@@ -263,6 +255,35 @@ export default function Registro() {
         </h1>
         <p className="text-muted-foreground mt-1">Preencha os dados da amostra recebida.</p>
       </div>
+
+      {itemsNeedingTagChange.length > 0 && user?.sector !== 'Secretaria' && (
+        <div className="bg-warning/10 border border-warning/30 p-4 rounded-md space-y-3 animate-fade-in">
+          <h3 className="font-semibold text-warning-foreground flex items-center gap-2">
+            <Tag className="w-5 h-5" />
+            Ação Necessária: Troca de Etiqueta
+          </h3>
+          <div className="space-y-2">
+            {itemsNeedingTagChange.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background p-3 rounded border border-warning/20 shadow-sm"
+              >
+                <div className="text-[13px]">
+                  <span className="font-semibold text-foreground">{item.descricao}</span>
+                  <div className="text-muted-foreground mt-1">
+                    Ordem de Serviço alterada de{' '}
+                    <span className="line-through">{item.ordemServicoAnterior}</span> para{' '}
+                    <span className="font-bold text-foreground">{item.ordemServico}</span>
+                  </div>
+                </div>
+                <Button size="sm" onClick={() => handleConfirmarTroca(item.id)}>
+                  Confirmar Troca Físicamente
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {hasResponses && (
         <div className="bg-primary/10 border border-primary/20 p-4 rounded-md space-y-3 animate-fade-in">

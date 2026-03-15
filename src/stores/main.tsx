@@ -172,10 +172,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
               ) {
                 safeStatus = 'Aguardando Secretaria'
               }
-            } else if (safeStatus === 'Aguardando Secretaria') {
-              if (hasFullContract && allOccsResolved && allItemsHaveValidOS && f.vistoSecretaria) {
-                safeStatus = 'Finalizada'
-              }
             }
 
             return { ...f, status: safeStatus }
@@ -185,47 +181,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.warn('Failed to load fichas from storage', error)
     }
-    return mockFichas.map((f) => {
-      let safeStatus =
-        f.status === ('Concluída' as any) || f.status === ('Resolvida' as any)
-          ? 'Finalizada'
-          : f.status
-
-      if (safeStatus === 'Finalizada' && f.vistoSecretaria === undefined) {
-        f.vistoSecretaria = true
-      }
-
-      const hasFullContract = Boolean(
-        f.codigoContrato &&
-        typeof f.codigoContrato === 'string' &&
-        f.codigoContrato.includes('/') &&
-        f.codigoContrato.split('/')[0] &&
-        f.codigoContrato.split('/')[1]?.length === 4,
-      )
-
-      const allOccsResolved = f.ocorrencias?.every((o: any) => o.resolvida) ?? true
-      const allItemsHaveValidOS =
-        f.itens?.length > 0 &&
-        f.itens.every(
-          (i: any) =>
-            i.ordemServico &&
-            i.ordemServico.trim() !== '' &&
-            typeof i.ordemServico === 'string' &&
-            i.ordemServico.includes('-'),
-        )
-
-      if (safeStatus === 'Finalizada') {
-        if (!hasFullContract || !allOccsResolved || !allItemsHaveValidOS || !f.vistoSecretaria) {
-          safeStatus = 'Aguardando Secretaria'
-        }
-      } else if (safeStatus === 'Aguardando Secretaria') {
-        if (hasFullContract && allOccsResolved && allItemsHaveValidOS && f.vistoSecretaria) {
-          safeStatus = 'Finalizada'
-        }
-      }
-
-      return { ...f, status: safeStatus }
-    }) as Ficha[]
+    return mockFichas
   })
 
   const [configuracoes, setConfiguracoes] = useState<Configuracoes>(defaultConfig)
