@@ -3,6 +3,7 @@ export type StatusFicha =
   | 'Aguardando Secretaria'
   | 'Respondida pela Secretaria'
   | 'Aguardando Validação'
+  | 'Validação Secretaria'
   | 'Finalizada'
 
 export interface Ocorrencia {

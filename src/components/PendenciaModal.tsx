@@ -116,7 +116,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
         if (!lit.trocaEtiquetaConfirmada) {
           addNotification({
             userId: localFicha.responsavel,
-            message: `A Ordem de Serviço da amostra "${lit.descricao}" foi alterada. Por favor, confirme a troca de etiqueta.`,
+            message: `Ordem de Troca de Etiqueta: A Ordem de Serviço da amostra "${lit.descricao}" foi alterada para ${lit.ordemServico}.`,
             fichaId: localFicha.id,
             type: 'tag_change',
           })

@@ -169,16 +169,11 @@ export default function Registro() {
 
     if (isDraftSave) {
       status = 'Em Triagem'
+    } else if (ocorrencias && ocorrencias.length > 0) {
+      status = 'Aguardando Secretaria'
     } else {
       if (user?.sector === 'Amostragem' || user?.role === 'Administrador') {
-        if (
-          ficha.status === 'Respondida pela Secretaria' ||
-          ficha.status === 'Aguardando Validação'
-        ) {
-          status = 'Aguardando Validação'
-        } else {
-          status = 'Aguardando Secretaria'
-        }
+        status = 'Validação Secretaria'
       }
     }
 

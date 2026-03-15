@@ -9,6 +9,8 @@ export function StatusBadge({ status, className }: { status: StatusFicha; classN
       'bg-warning/15 text-warning-foreground hover:bg-warning/25 border-warning/20',
     'Aguardando Validação':
       'bg-purple-500/15 text-purple-600 hover:bg-purple-500/25 border-purple-500/20',
+    'Validação Secretaria':
+      'bg-purple-500/15 text-purple-600 hover:bg-purple-500/25 border-purple-500/20',
     'Respondida pela Secretaria':
       'bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 border-blue-500/20',
     'Em Triagem': 'bg-primary/15 text-primary hover:bg-primary/25 border-primary/20',

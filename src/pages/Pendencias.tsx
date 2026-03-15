@@ -38,7 +38,10 @@ export default function Pendencias() {
   }
 
   const pendentes = fichas.filter(
-    (f) => f.status === 'Aguardando Secretaria' || f.status === 'Aguardando Validação',
+    (f) =>
+      f.status === 'Aguardando Secretaria' ||
+      f.status === 'Validação Secretaria' ||
+      f.status === 'Aguardando Validação',
   )
 
   const filteredData = {

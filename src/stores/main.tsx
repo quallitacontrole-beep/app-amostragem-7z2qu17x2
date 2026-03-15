@@ -28,7 +28,7 @@ const mockFichas: Ficha[] = [
     cpfCnpj: '45.997.418/0001-53',
     cidadeUf: 'São Paulo-SP',
     codigoContrato: '',
-    status: 'Aguardando Secretaria',
+    status: 'Validação Secretaria',
     ocorrencias: [
       { id: 'occ-1', descricao: 'Contrato Indefinido para o cliente.', resolvida: false },
     ],
@@ -140,6 +140,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             let safeStatus =
               f.status === 'Concluída' || f.status === 'Resolvida' ? 'Finalizada' : f.status
 
+            if (safeStatus === 'Aguardando Validação') {
+              safeStatus = 'Validação Secretaria'
+            }
+
             if (safeStatus === 'Finalizada' && f.vistoSecretaria === undefined) {
               f.vistoSecretaria = true
             }
@@ -170,7 +174,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 !allItemsHaveValidOS ||
                 !f.vistoSecretaria
               ) {
-                safeStatus = 'Aguardando Secretaria'
+                safeStatus = 'Validação Secretaria'
               }
             }
 

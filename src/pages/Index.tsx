@@ -8,10 +8,14 @@ import {
   Search,
   ChevronRight,
   FileEdit,
+  ShieldCheck,
+  Calendar as CalendarIcon,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import {
   Pagination,
   PaginationContent,
@@ -25,6 +29,8 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { PendenciaModal } from '@/components/PendenciaModal'
 import { Ficha } from '@/types'
 import { format } from 'date-fns'
+import { DateRange } from 'react-day-picker'
+import { cn } from '@/lib/utils'
 
 export default function Index() {
   const { fichas, updateFicha, addAuditLog } = useAppStore()
@@ -32,19 +38,57 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null)
-  const PAGE_SIZE = 20
 
-  useEffect(() => setCurrentPage(1), [searchQuery])
+  const getInitialDateRange = (): DateRange => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-  const counts = {
-    triagem: fichas.filter((f) => f.status === 'Em Triagem').length,
-    secretaria: fichas.filter(
-      (f) => f.status === 'Aguardando Secretaria' || f.status === 'Aguardando Validação',
-    ).length,
-    resolvida: fichas.filter((f) => f.status === 'Finalizada').length,
+    let startOffset = 1
+    const yesterday = new Date(today)
+    yesterday.setDate(today.getDate() - 1)
+
+    if (yesterday.getDay() === 0) {
+      startOffset = 3
+    } else if (yesterday.getDay() === 6) {
+      startOffset = 2
+    }
+
+    const start = new Date(today)
+    start.setDate(today.getDate() - startOffset)
+
+    return { from: start, to: today }
   }
 
-  const filteredFichas = fichas.filter((f) => {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(getInitialDateRange())
+  const PAGE_SIZE = 20
+
+  useEffect(() => setCurrentPage(1), [searchQuery, dateRange])
+
+  const dateFilteredFichas = fichas.filter((f) => {
+    if (!dateRange?.from) return true
+
+    const dateStr = f.createdAt || f.dataRecebimento
+    if (!dateStr) return false
+
+    const d = new Date(dateStr)
+    d.setHours(0, 0, 0, 0)
+
+    const fTime = dateRange.from.getTime()
+    const tTime = dateRange.to ? dateRange.to.getTime() : fTime
+
+    return d.getTime() >= fTime && d.getTime() <= tTime
+  })
+
+  const counts = {
+    triagem: dateFilteredFichas.filter((f) => f.status === 'Em Triagem').length,
+    secretaria: dateFilteredFichas.filter((f) => f.status === 'Aguardando Secretaria').length,
+    validacao: dateFilteredFichas.filter(
+      (f) => f.status === 'Validação Secretaria' || f.status === 'Aguardando Validação',
+    ).length,
+    resolvida: dateFilteredFichas.filter((f) => f.status === 'Finalizada').length,
+  }
+
+  const filteredFichas = dateFilteredFichas.filter((f) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
 
@@ -55,9 +99,6 @@ export default function Index() {
     const shortDate = f.dataRecebimento
       ? format(new Date(f.dataRecebimento), 'dd/MM/yyyy').toLowerCase()
       : ''
-    const veryShortDate = f.dataRecebimento
-      ? format(new Date(f.dataRecebimento), 'dd/MM').toLowerCase()
-      : ''
 
     return (
       f.id.toLowerCase().includes(q) ||
@@ -65,8 +106,7 @@ export default function Index() {
       (f.codigoContrato && f.codigoContrato.toLowerCase().includes(q)) ||
       (f.responsavel && f.responsavel.toLowerCase().includes(q)) ||
       dateStr.includes(q) ||
-      shortDate.includes(q) ||
-      veryShortDate.includes(q)
+      shortDate.includes(q)
     )
   })
 
@@ -88,8 +128,11 @@ export default function Index() {
     }
   }
 
-  const pendingFichasForSecretaria = fichas.filter(
-    (f) => f.status === 'Aguardando Secretaria' || f.status === 'Aguardando Validação',
+  const pendingFichasForSecretaria = dateFilteredFichas.filter(
+    (f) =>
+      f.status === 'Aguardando Secretaria' ||
+      f.status === 'Validação Secretaria' ||
+      f.status === 'Aguardando Validação',
   )
 
   return (
@@ -99,55 +142,112 @@ export default function Index() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Visão geral do recebimento de amostras.</p>
         </div>
-        <div className="flex items-center gap-3">
-          {canRegister && (
-            <Button asChild size="lg" className="shadow-md">
-              <Link to="/registro">
-                Registrar Amostra <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          )}
-          {canViewPending && (
-            <Button asChild size="lg" className="shadow-md" variant="secondary">
-              <Link to="/pendencias">
-                Ver Pendências <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          )}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  'w-full sm:w-[260px] justify-start text-left font-normal shadow-sm bg-card',
+                  !dateRange && 'text-muted-foreground',
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <span className="truncate">
+                      {format(dateRange.from, 'dd/MM/yyyy')} - {format(dateRange.to, 'dd/MM/yyyy')}
+                    </span>
+                  ) : (
+                    <span>{format(dateRange.from, 'dd/MM/yyyy')}</span>
+                  )
+                ) : (
+                  <span>Selecione o período</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+          <div className="flex w-full sm:w-auto items-center gap-2">
+            {canRegister && (
+              <Button asChild size="default" className="shadow-md flex-1 sm:flex-initial">
+                <Link to="/registro">
+                  Registrar <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
+            {canViewPending && (
+              <Button
+                asChild
+                size="default"
+                className="shadow-md flex-1 sm:flex-initial"
+                variant="secondary"
+              >
+                <Link to="/pendencias">
+                  Pendências <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-primary">Em Triagem</CardTitle>
             <ClipboardList className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">{counts.triagem}</div>
-            <p className="text-xs text-muted-foreground mt-1">Amostras em processo inicial</p>
+            <div className="text-2xl font-bold text-primary">{counts.triagem}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">Amostras em processo inicial</p>
           </CardContent>
         </Card>
         <Card className="border-warning/20 bg-warning/5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-warning-foreground">
-              Aguardando Secretaria
+            <CardTitle className="text-sm font-medium text-warning-foreground truncate pr-2">
+              Aguardando Sec.
             </CardTitle>
-            <AlertCircle className="h-4 w-4 text-warning-foreground" />
+            <AlertCircle className="h-4 w-4 text-warning-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-warning-foreground">{counts.secretaria}</div>
-            <p className="text-xs text-muted-foreground mt-1">Requerem atenção ou OS</p>
+            <div className="text-2xl font-bold text-warning-foreground">{counts.secretaria}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Esperando por resposta da Secretaria
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-purple-500/20 bg-purple-500/5">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-purple-600 truncate pr-2">
+              Validação Sec.
+            </CardTitle>
+            <ShieldCheck className="h-4 w-4 text-purple-600 shrink-0" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{counts.validacao}</div>
+            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
+              Fichas finalizadas pela Amostragem e enviadas à Secretaria
+            </p>
           </CardContent>
         </Card>
         <Card className="border-success/20 bg-success/5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-success">Finalizadas</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-success" />
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-success">{counts.resolvida}</div>
-            <p className="text-xs text-muted-foreground mt-1">Prontas para análise</p>
+            <div className="text-2xl font-bold text-success">{counts.resolvida}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">Prontas para análise</p>
           </CardContent>
         </Card>
       </div>
@@ -157,13 +257,13 @@ export default function Index() {
           <CardHeader className="bg-warning/5 border-b border-warning/10 pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-warning" />
-              Pendências da Secretaria
+              Pendências da Secretaria no Período
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             {pendingFichasForSecretaria.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhuma pendência encontrada para o seu setor.
+                Nenhuma pendência encontrada para o seu setor no período selecionado.
               </p>
             ) : (
               <div className="space-y-3">
@@ -203,11 +303,11 @@ export default function Index() {
 
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <CardTitle>Atividade Recente</CardTitle>
+          <CardTitle>Atividade no Período</CardTitle>
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID, Cliente, Data ou Usuário..."
+              placeholder="Buscar por ID, Cliente ou Usuário..."
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
