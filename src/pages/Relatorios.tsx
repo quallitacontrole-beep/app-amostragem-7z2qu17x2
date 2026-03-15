@@ -18,7 +18,7 @@ export default function Relatorios() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
 
-  if (user?.role !== 'Secretaria' && user?.role !== 'Administrador') {
+  if (user?.sector !== 'Secretaria' && user?.role !== 'Administrador') {
     return (
       <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
         <ShieldAlert className="h-10 w-10 text-muted-foreground mb-4" />

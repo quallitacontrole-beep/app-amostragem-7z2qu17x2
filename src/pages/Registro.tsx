@@ -72,14 +72,17 @@ export default function Registro() {
     if (existingFicha) setFicha(existingFicha)
   }, [existingFicha])
 
-  if (user?.sector !== 'Amostragem' && user?.role !== 'Administrador') {
+  const canAccess =
+    user?.role === 'Administrador' ||
+    user?.sector === 'Amostragem' ||
+    (id && user?.sector === 'Secretaria')
+
+  if (!canAccess) {
     return (
       <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
         <AlertTriangle className="h-10 w-10 text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
-        <p>
-          Apenas usuários do setor de Amostragem ou Administradores podem registrar novas fichas.
-        </p>
+        <p>Apenas usuários do setor de Amostragem podem registrar novas fichas.</p>
         <Button variant="outline" className="mt-6" onClick={() => navigate('/')}>
           Voltar ao Dashboard
         </Button>
@@ -194,6 +197,8 @@ export default function Registro() {
     navigate('/')
   }
 
+  const isSecretariaReadOnly = user?.sector === 'Secretaria' && user?.role !== 'Administrador'
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in">
       <div>
@@ -210,17 +215,19 @@ export default function Registro() {
         codigoContrato={ficha.codigoContrato}
       />
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem]">
-        <Button variant="destructive" className="mr-auto" onClick={() => setOccModalOpen(true)}>
-          <AlertTriangle className="mr-2 h-4 w-4" /> Contrato Indefinido
-        </Button>
-        <Button variant="outline" onClick={handleSaveDraft}>
-          <Save className="mr-2 h-4 w-4" /> Salvar Rascunho
-        </Button>
-        <Button onClick={handleSubmit}>
-          <Send className="mr-2 h-4 w-4" /> Enviar Secretaria
-        </Button>
-      </div>
+      {!isSecretariaReadOnly && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem]">
+          <Button variant="destructive" className="mr-auto" onClick={() => setOccModalOpen(true)}>
+            <AlertTriangle className="mr-2 h-4 w-4" /> Contrato Indefinido
+          </Button>
+          <Button variant="outline" onClick={handleSaveDraft}>
+            <Save className="mr-2 h-4 w-4" /> Salvar Rascunho
+          </Button>
+          <Button onClick={handleSubmit}>
+            <Send className="mr-2 h-4 w-4" /> Enviar Secretaria
+          </Button>
+        </div>
+      )}
 
       <Dialog open={isOccModalOpen} onOpenChange={setOccModalOpen}>
         <DialogContent>

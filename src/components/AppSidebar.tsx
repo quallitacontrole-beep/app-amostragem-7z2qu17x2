@@ -26,13 +26,13 @@ const navItems = [
     title: 'Início',
     url: '/',
     icon: LayoutDashboard,
-    roles: ['Administrador', 'Amostrador', 'Secretaria'],
+    roles: ['Administrador', 'Amostrador', 'Amostragem', 'Secretaria', 'Usuário'],
   },
   {
     title: 'Nova Ficha',
     url: '/registro',
     icon: FilePlus2,
-    roles: ['Administrador', 'Amostrador'],
+    roles: ['Administrador', 'Amostrador', 'Amostragem'],
   },
   {
     title: 'Pendências',
@@ -50,7 +50,7 @@ const navItems = [
     title: 'Configurações',
     url: '/config',
     icon: Settings,
-    roles: ['Administrador', 'Amostrador', 'Secretaria'],
+    roles: ['Administrador', 'Amostrador', 'Amostragem', 'Secretaria', 'Usuário'],
   },
   {
     title: 'Auditoria',
@@ -64,7 +64,12 @@ export function AppSidebar() {
   const location = useLocation()
   const { user } = useAuthStore()
 
-  const allowedNavItems = navItems.filter((item) => user && item.roles.includes(user.role))
+  const allowedNavItems = navItems.filter((item) => {
+    if (!user) return false
+    if (item.roles.includes(user.role)) return true
+    if (user.sector && item.roles.includes(user.sector)) return true
+    return false
+  })
 
   return (
     <Sidebar>

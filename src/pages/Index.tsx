@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Search,
   ChevronRight,
+  FileEdit,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,13 +22,16 @@ import {
 import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
 import { StatusBadge } from '@/components/StatusBadge'
+import { PendenciaModal } from '@/components/PendenciaModal'
+import { Ficha } from '@/types'
 import { format } from 'date-fns'
 
 export default function Index() {
-  const { fichas } = useAppStore()
+  const { fichas, updateFicha, addAuditLog } = useAppStore()
   const { user } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null)
   const PAGE_SIZE = 20
 
   useEffect(() => setCurrentPage(1), [searchQuery])
@@ -75,8 +79,15 @@ export default function Index() {
   const canRegister = user?.sector === 'Amostragem' || user?.role === 'Administrador'
   const canViewPending = user?.sector === 'Secretaria' || user?.role === 'Administrador'
 
+  const handleUpdateAndLog = (ficha: Ficha) => {
+    updateFicha(ficha)
+    if (user) {
+      addAuditLog({ userId: user.id, userName: user.name, action: 'Atualizou', fichaId: ficha.id })
+    }
+  }
+
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in pb-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -134,6 +145,54 @@ export default function Index() {
           </CardContent>
         </Card>
       </div>
+
+      {user?.sector === 'Secretaria' && (
+        <Card className="border-warning/40 shadow-sm">
+          <CardHeader className="bg-warning/5 border-b border-warning/10 pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-warning" />
+              Pendências da Secretaria
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {fichas.filter((f) => f.status === 'Aguardando Secretaria').length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhuma pendência encontrada para o seu setor.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {fichas
+                  .filter((f) => f.status === 'Aguardando Secretaria')
+                  .map((ficha) => {
+                    const dataReceb = ficha.dataRecebimento
+                      ? format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')
+                      : ''
+                    return (
+                      <div
+                        key={ficha.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-md border bg-card hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="space-y-1">
+                          <div className="font-medium text-sm">
+                            {ficha.id} - {ficha.clienteNome}
+                            {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Recebida em {dataReceb} por {ficha.responsavel}
+                          </p>
+                        </div>
+                        <Button size="sm" onClick={() => setSelectedFicha(ficha)}>
+                          <FileEdit className="h-4 w-4 mr-2" />
+                          Tratar Pendência
+                        </Button>
+                      </div>
+                    )
+                  })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -234,6 +293,13 @@ export default function Index() {
           </div>
         </CardContent>
       </Card>
+
+      <PendenciaModal
+        isOpen={!!selectedFicha}
+        ficha={selectedFicha}
+        onClose={() => setSelectedFicha(null)}
+        onSave={handleUpdateAndLog}
+      />
     </div>
   )
 }
