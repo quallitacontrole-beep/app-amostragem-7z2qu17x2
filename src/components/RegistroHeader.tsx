@@ -60,7 +60,7 @@ function CityUfAutocomplete({
           {filtered.map((opt) => (
             <div
               key={opt}
-              className="px-3 py-2 text-sm cursor-pointer hover:bg-accent"
+              className="px-3 py-2 text-[13px] cursor-pointer hover:bg-accent"
               onClick={() => {
                 setSearch(opt)
                 onChange(opt)
@@ -130,7 +130,7 @@ export function RegistroHeader({
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-12">
-        <div className="space-y-2 md:col-span-2">
+        <div className="space-y-2 md:col-span-3">
           <Label>ID</Label>
           <Input value={ficha.id} disabled className="bg-muted" />
         </div>
@@ -146,7 +146,7 @@ export function RegistroHeader({
           <Label>Responsável</Label>
           <Input value={ficha.responsavel} disabled className="bg-muted" />
         </div>
-        <div className="space-y-2 md:col-span-4">
+        <div className="space-y-2 md:col-span-3">
           <Label>Recebimento</Label>
           <Select
             value={ficha.formaRecebimento}
@@ -165,7 +165,7 @@ export function RegistroHeader({
           </Select>
         </div>
 
-        <div className="space-y-2 md:col-span-5">
+        <div className="space-y-2 md:col-span-4">
           <Label className="flex justify-between">
             Nome do Cliente
             <button
@@ -187,7 +187,7 @@ export function RegistroHeader({
           />
         </div>
 
-        <div className="space-y-2 md:col-span-3 relative">
+        <div className="space-y-2 md:col-span-4 relative">
           <Label>CPF/CNPJ</Label>
           <Input
             placeholder="CPF/CNPJ"
