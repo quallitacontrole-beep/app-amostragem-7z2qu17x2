@@ -20,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { isValidCpf, isValidCnpj } from '@/lib/utils'
+import { isValidCpf, isValidCnpj, removeAccents } from '@/lib/utils'
 
 export default function Registro() {
   const { id } = useParams()
@@ -180,10 +180,14 @@ export default function Registro() {
         }
       }
 
-      const isFQ = item.setorDestino === 'Físico-Químico'
-      const requires1g =
-        isFQ &&
-        (item.tipo === 'Produto Acabado Farmacêutico' || item.tipo === 'Matéria-prima Diluída')
+      const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
+      const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
+      const isFQ = setorNorm.includes('fisico-quimico')
+      const isProd = tipoNorm.includes('produto acabado')
+      const isMp = tipoNorm.includes('materia-prima diluida')
+
+      const requires1g = isFQ && (isProd || isMp)
+
       if (requires1g && (!item.enviou1gExcipiente || !item.enviou1gAtivo)) {
         toast.error('Seleção de Excipiente e Ativo (1g) é obrigatória para os itens aplicáveis.')
         return false

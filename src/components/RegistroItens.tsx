@@ -14,6 +14,7 @@ import { Trash2, Plus } from 'lucide-react'
 import { AmostraItem } from '@/types'
 import { useAppStore } from '@/stores/main'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { removeAccents } from '@/lib/utils'
 
 const getProtocoloNumber = (pw?: string) => {
   if (!pw) return ''
@@ -59,9 +60,11 @@ export function RegistroItens({
         if (it.id !== id) return it
         const newItem = { ...it, [field]: value }
 
-        const isProd = newItem.tipo === 'Produto Acabado Farmacêutico'
-        const isMp = newItem.tipo === 'Matéria-prima Diluída'
-        const isFQ = newItem.setorDestino === 'Físico-Químico'
+        const tipoNorm = removeAccents(newItem.tipo || '').toLowerCase()
+        const setorNorm = removeAccents(newItem.setorDestino || '').toLowerCase()
+        const isProd = tipoNorm.includes('produto acabado')
+        const isMp = tipoNorm.includes('materia-prima diluida')
+        const isFQ = setorNorm.includes('fisico-quimico')
 
         if (!(isProd && isFQ)) {
           delete newItem.dosagem
@@ -100,9 +103,11 @@ export function RegistroItens({
           </p>
         )}
         {itens.map((item, index) => {
-          const isProd = item.tipo === 'Produto Acabado Farmacêutico'
-          const isMp = item.tipo === 'Matéria-prima Diluída'
-          const isFQ = item.setorDestino === 'Físico-Químico'
+          const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
+          const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
+          const isProd = tipoNorm.includes('produto acabado')
+          const isMp = tipoNorm.includes('materia-prima diluida')
+          const isFQ = setorNorm.includes('fisico-quimico')
 
           const showDosagem = isProd && isFQ
           const showFatorDiluicao = isMp && isFQ
