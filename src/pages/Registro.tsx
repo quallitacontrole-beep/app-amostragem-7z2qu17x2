@@ -115,7 +115,6 @@ export default function Registro() {
     const isFinalizing = !isDraftSave
     const errors: string[] = []
 
-    // Strict Base Validation (Always required for any save)
     if (!ficha.formaRecebimento) errors.push('Recebimento')
     if (!ficha.clienteNome) errors.push('Cliente')
     if (!ficha.cidadeUf) errors.push('Cidade')
@@ -205,7 +204,8 @@ export default function Registro() {
   }
 
   const saveFicha = (isIntermediateSave: boolean, ocorrencias?: Ocorrencia[]) => {
-    const action = id ? 'Atualizou' : 'Criou'
+    const isExisting = !!id || fichas.some((f) => f.id === ficha.id)
+    const action = isExisting ? 'Atualizou' : 'Criou'
     let status = ficha.status
 
     if (isIntermediateSave) {
@@ -237,10 +237,11 @@ export default function Registro() {
       status,
       isDraft: isIntermediateSave ? ficha.isDraft : false,
     }
-    if (ocorrencias)
-      finalFicha.ocorrencias = id ? [...ficha.ocorrencias, ...ocorrencias] : ocorrencias
+    if (ocorrencias) {
+      finalFicha.ocorrencias = isExisting ? [...ficha.ocorrencias, ...ocorrencias] : ocorrencias
+    }
 
-    if (id) {
+    if (isExisting) {
       updateFicha(finalFicha)
     } else {
       addFicha(finalFicha)
@@ -251,8 +252,12 @@ export default function Registro() {
   const handleSaveDraft = () => {
     if (!validateForm(true)) return
     saveFicha(true)
-    toast.success('Registro salvo com sucesso!')
-    navigate('/')
+    toast.success('Progresso salvo com sucesso!', {
+      description: 'Você pode continuar editando a ficha.',
+    })
+    if (!id) {
+      navigate(`/registro/${ficha.id}`, { replace: true })
+    }
   }
 
   const handleSubmit = () => {
@@ -261,7 +266,7 @@ export default function Registro() {
     if (user?.sector === 'Secretaria') {
       toast.success('Alterações salvas com sucesso!')
     } else {
-      toast.success('Ficha enviada para a Secretaria!')
+      toast.success('Ficha salva e enviada para a Secretaria!')
     }
     navigate('/')
   }
