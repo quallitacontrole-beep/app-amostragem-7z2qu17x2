@@ -112,8 +112,10 @@ export default function Registro() {
   }
 
   const validateForm = (isDraftSave: boolean) => {
+    const isFinalizing = !isDraftSave
     const errors: string[] = []
 
+    // Strict Base Validation (Always required for any save)
     if (!ficha.formaRecebimento) errors.push('Recebimento')
     if (!ficha.clienteNome) errors.push('Nome do cliente')
     if (!ficha.cidadeUf) errors.push('Cidade')
@@ -126,19 +128,12 @@ export default function Registro() {
 
         if (!item.tipo) errors.push(`${itemPrefix} Tipo de amostra`)
         if (!item.quantidade) errors.push(`${itemPrefix} Quantidade amostral`)
-        if (!item.unidade) errors.push(`${itemPrefix} Unidade de medida da quantidade amostral`)
+        if (!item.unidade) errors.push(`${itemPrefix} Unidade de medida`)
         if (!item.descricao) errors.push(`${itemPrefix} Descrição`)
         if (!item.embalagem) errors.push(`${itemPrefix} Embalagem`)
         if (!item.setorDestino) errors.push(`${itemPrefix} Setor de análise`)
 
-        if (item.protocoloWeb) {
-          const parts = item.protocoloWeb.split('-')
-          if (parts.length < 2 || !parts[1]) {
-            errors.push(`${itemPrefix} Protocolo Web incompleto (Código do contrato ausente)`)
-          }
-        }
-
-        if (!isDraftSave) {
+        if (isFinalizing) {
           const osParts = item.ordemServico?.split('-')
           if (
             !item.ordemServico ||
@@ -146,12 +141,7 @@ export default function Registro() {
             osParts.length < 2 ||
             !osParts[osParts.length - 1]
           ) {
-            errors.push(`${itemPrefix} Ordem de serviço (OS)`)
-          }
-        } else if (item.ordemServico) {
-          const osParts = item.ordemServico.split('-')
-          if (osParts.length < 2 || !osParts[osParts.length - 1]) {
-            errors.push(`${itemPrefix} Ordem de serviço (OS) incompleta`)
+            errors.push(`${itemPrefix} Ordem de serviço (OS) obrigatória para finalizar`)
           }
         }
 
@@ -168,30 +158,20 @@ export default function Registro() {
       })
     }
 
-    if (!isDraftSave) {
+    if (isFinalizing) {
       if (!ficha.codigoContrato) {
-        errors.push('Código')
+        errors.push('Código do contrato obrigatório para finalizar')
       } else {
         const parts = ficha.codigoContrato.split('/')
         if (parts.length < 2 || !parts[0] || parts[1].length !== 4) {
-          errors.push('Código (inválido ou incompleto)')
+          errors.push('Código do contrato inválido ou incompleto')
         }
-      }
-    } else if (ficha.codigoContrato) {
-      const parts = ficha.codigoContrato.split('/')
-      if (
-        parts.length < 2 ||
-        (!parts[0] && parts[1]) ||
-        (parts[0] && !parts[1]) ||
-        (parts[1] && parts[1].length !== 4)
-      ) {
-        errors.push('Código incompleto (prefixo ou ano)')
       }
     }
 
     if (ficha.cpfCnpj) {
       const digits = ficha.cpfCnpj.replace(/\D/g, '')
-      if (!isDraftSave && (digits.length < 11 || (digits.length > 11 && digits.length < 14))) {
+      if (digits.length < 11 || (digits.length > 11 && digits.length < 14)) {
         errors.push('CPF/CNPJ incompleto')
       }
       if (digits.length === 11 && !isValidCpf(digits)) {
@@ -224,12 +204,19 @@ export default function Registro() {
     return true
   }
 
-  const saveFicha = (isDraftSave: boolean, ocorrencias?: Ocorrencia[]) => {
+  const saveFicha = (isIntermediateSave: boolean, ocorrencias?: Ocorrencia[]) => {
     const action = id ? 'Atualizou' : 'Criou'
     let status = ficha.status
 
-    if (isDraftSave) {
-      status = 'Em Triagem'
+    if (isIntermediateSave) {
+      if (
+        status !== 'Finalizada' &&
+        status !== 'Validação Secretaria' &&
+        status !== 'Aguardando Secretaria' &&
+        status !== 'Respondida pela Secretaria'
+      ) {
+        status = 'Em Triagem'
+      }
     } else if (ocorrencias && ocorrencias.length > 0) {
       status = 'Aguardando Secretaria'
     } else {
@@ -245,7 +232,11 @@ export default function Registro() {
       }
     }
 
-    const finalFicha = { ...ficha, status, isDraft: isDraftSave }
+    const finalFicha = {
+      ...ficha,
+      status,
+      isDraft: isIntermediateSave ? ficha.isDraft : false,
+    }
     if (ocorrencias)
       finalFicha.ocorrencias = id ? [...ficha.ocorrencias, ...ocorrencias] : ocorrencias
 
@@ -260,7 +251,7 @@ export default function Registro() {
   const handleSaveDraft = () => {
     if (!validateForm(true)) return
     saveFicha(true)
-    toast.success('Rascunho salvo com sucesso!')
+    toast.success('Registro salvo com sucesso!')
     navigate('/')
   }
 
@@ -380,16 +371,24 @@ export default function Registro() {
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem]">
         {user?.sector !== 'Secretaria' && (
-          <Button variant="destructive" className="mr-auto" onClick={() => setOccModalOpen(true)}>
+          <Button
+            variant="destructive"
+            className="mr-auto"
+            onClick={() => setOccModalOpen(true)}
+            disabled={ficha.status === 'Finalizada'}
+          >
             <AlertTriangle className="mr-2 h-4 w-4" /> Resolução Secretaria
           </Button>
         )}
         {user?.sector !== 'Secretaria' && (
           <Button variant="outline" onClick={handleSaveDraft}>
-            <Save className="mr-2 h-4 w-4" /> Salvar Rascunho
+            <Save className="mr-2 h-4 w-4" /> Salvar
           </Button>
         )}
-        <Button onClick={handleSubmit}>
+        <Button
+          onClick={handleSubmit}
+          disabled={user?.sector !== 'Secretaria' && ficha.status === 'Finalizada'}
+        >
           {user?.sector === 'Secretaria' ? (
             <Save className="mr-2 h-4 w-4" />
           ) : (
