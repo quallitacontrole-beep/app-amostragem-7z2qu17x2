@@ -1,154 +1,162 @@
+import { useState } from 'react'
+import { Plus, Trash2, Edit2, ShieldAlert, Save } from 'lucide-react'
 import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useState, useMemo } from 'react'
-import { Plus, X, ChevronLeft, ChevronRight, Search, Lock } from 'lucide-react'
-import { UserManagement } from '@/components/UserManagement'
-import { removeAccents, cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { toast } from 'sonner'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
 
-function ConfigList({
+function ListManager({
   title,
   description,
   items,
-  onAdd,
-  onRemove,
-  placeholder = 'Novo item...',
-  searchable = false,
+  onChange,
   lockedItems = [],
 }: {
   title: string
   description: string
   items: string[]
-  onAdd: (v: string) => void
-  onRemove: (v: string) => void
-  placeholder?: string
-  searchable?: boolean
+  onChange: (i: string[]) => void
   lockedItems?: string[]
 }) {
-  const [newVal, setNewVal] = useState('')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [page, setPage] = useState(1)
-  const ITEMS_PER_PAGE = 50
+  const [newItem, setNewItem] = useState('')
+  const [editIdx, setEditIdx] = useState<number | null>(null)
+  const [editVal, setEditVal] = useState('')
 
   const handleAdd = () => {
-    if (!newVal.trim()) return
-    if (items.includes(newVal.trim())) return
-    onAdd(newVal.trim())
-    setNewVal('')
+    if (!newItem.trim()) return
+    if (items.some((i) => i.toLowerCase() === newItem.trim().toLowerCase())) {
+      toast.error('Este item já existe na lista.')
+      return
+    }
+    onChange([...items, newItem.trim()])
+    setNewItem('')
   }
 
-  const filteredItems = useMemo(() => {
-    let res = items
-    if (searchable && searchTerm) {
-      const searchLower = removeAccents(searchTerm.toLowerCase())
-      res = items.filter((i) => removeAccents(i.toLowerCase()).includes(searchLower))
-    }
-    return [...res].sort((a, b) => a.localeCompare(b))
-  }, [items, searchTerm, searchable])
-
-  const paginatedItems = useMemo(() => {
-    if (!searchable) return filteredItems
-    const start = (page - 1) * ITEMS_PER_PAGE
-    return filteredItems.slice(start, start + ITEMS_PER_PAGE)
-  }, [filteredItems, page, searchable])
-
-  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE)
-  const showPagination = searchable && filteredItems.length > ITEMS_PER_PAGE
+  const handleSaveEdit = (idx: number) => {
+    if (!editVal.trim()) return
+    const newItems = [...items]
+    newItems[idx] = editVal.trim()
+    onChange(newItems)
+    setEditIdx(null)
+  }
 
   return (
-    <Card className="flex flex-col h-full max-h-[600px]">
-      <CardHeader className="pb-3 shrink-0">
+    <Card>
+      <CardHeader>
         <CardTitle className="text-lg">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 flex-1 overflow-hidden flex flex-col">
-        <div className="flex gap-2 shrink-0">
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
           <Input
-            placeholder={placeholder}
-            value={newVal}
-            onChange={(e) => setNewVal(e.target.value)}
+            placeholder="Adicionar novo item..."
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           />
-          <Button onClick={handleAdd} size="icon" className="shrink-0">
-            <Plus className="h-4 w-4" />
+          <Button onClick={handleAdd} size="icon">
+            <Plus className="w-4 h-4" />
           </Button>
         </div>
-
-        {searchable && (
-          <div className="shrink-0 pt-2 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar itens na lista..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
-                setPage(1)
-              }}
-              className="bg-muted/50 pl-9"
-            />
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2 mt-4 overflow-y-auto flex-1 content-start pb-2 pr-2">
-          {paginatedItems.map((item) => {
-            const isLocked = lockedItems.includes(item)
+        <div className="space-y-2">
+          {items.map((item, idx) => {
+            const isLocked = lockedItems.some((l) => l.toLowerCase() === item.toLowerCase())
             return (
-              <Badge
-                key={item}
-                variant="secondary"
-                className={cn(
-                  'px-3 py-1 text-sm flex items-center gap-1',
-                  isLocked && 'opacity-80 pr-2 pointer-events-none',
-                )}
+              <div
+                key={idx}
+                className="flex items-center justify-between p-2 border rounded-md bg-muted/20"
               >
-                {item}
-                {isLocked ? (
-                  <Lock className="h-3 w-3 text-muted-foreground/70 ml-1" />
+                {editIdx === idx ? (
+                  <Input
+                    value={editVal}
+                    onChange={(e) => setEditVal(e.target.value)}
+                    className="h-8 mr-2"
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(idx)}
+                    autoFocus
+                  />
                 ) : (
-                  <button
-                    onClick={() => onRemove(item)}
-                    className="text-muted-foreground hover:text-destructive ml-1 transition-colors"
-                    title="Remover item"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  <span className="text-[13px] font-medium">{item}</span>
                 )}
-              </Badge>
+
+                <div className="flex items-center gap-1">
+                  {editIdx === idx ? (
+                    <Button size="sm" onClick={() => handleSaveEdit(idx)}>
+                      Salvar
+                    </Button>
+                  ) : (
+                    <>
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={cn('inline-block', isLocked && 'cursor-not-allowed')}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                  'h-8 w-8',
+                                  isLocked && 'pointer-events-none opacity-50',
+                                )}
+                                onClick={() => {
+                                  setEditIdx(idx)
+                                  setEditVal(item)
+                                }}
+                                disabled={isLocked}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          {isLocked && (
+                            <TooltipContent>
+                              <p className="flex items-center gap-2 text-orange-500">
+                                <ShieldAlert className="w-4 h-4" /> Item protegido pelo sistema
+                              </p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={cn('inline-block', isLocked && 'cursor-not-allowed')}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                  'h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10',
+                                  isLocked && 'pointer-events-none opacity-50',
+                                )}
+                                onClick={() => onChange(items.filter((_, i) => i !== idx))}
+                                disabled={isLocked}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          {isLocked && (
+                            <TooltipContent>
+                              <p className="flex items-center gap-2 text-orange-500">
+                                <ShieldAlert className="w-4 h-4" /> Item protegido e não pode ser
+                                excluído
+                              </p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                    </>
+                  )}
+                </div>
+              </div>
             )
           })}
-          {paginatedItems.length === 0 && (
-            <p className="text-sm text-muted-foreground w-full text-center py-4">
-              Nenhum item encontrado.
-            </p>
-          )}
         </div>
-
-        {showPagination && (
-          <div className="flex items-center justify-between shrink-0 pt-4 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
-            </Button>
-            <span className="text-xs text-muted-foreground font-medium">
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              Próxima <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-        )}
       </CardContent>
     </Card>
   )
@@ -157,141 +165,131 @@ function ConfigList({
 export default function Config() {
   const { configuracoes, updateConfiguracoes } = useAppStore()
   const { user } = useAuthStore()
+  const [config, setConfig] = useState(configuracoes)
 
-  const isAdmin = user?.role === 'Administrador'
-
-  const handleUpdate = (key: keyof typeof configuracoes, value: any) => {
-    updateConfiguracoes({ ...configuracoes, [key]: value })
-  }
-
-  type ConfigKeys =
-    | 'tiposAmostra'
-    | 'formasRecebimento'
-    | 'setores'
-    | 'setoresAnalise'
-    | 'embalagens'
-    | 'unidadesQtd'
-    | 'unidadesDosagem'
-    | 'cidadesEstados'
-
-  const addToList = (key: ConfigKeys, val: string) => {
-    handleUpdate(key, [...(configuracoes[key] || []), val])
-  }
-
-  const removeFromList = (key: ConfigKeys, val: string) => {
-    handleUpdate(
-      key,
-      (configuracoes[key] || []).filter((i) => i !== val),
+  if (user?.role !== 'Administrador') {
+    return (
+      <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
+        <ShieldAlert className="h-10 w-10 mb-4" />
+        <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
+        <p>Apenas Administradores podem acessar as configurações.</p>
+      </div>
     )
   }
 
+  const handleUpdateList = (key: keyof typeof config, newItems: string[]) =>
+    setConfig({ ...config, [key]: newItems })
+
+  const handleSave = () => {
+    updateConfiguracoes(config)
+    toast.success('Configurações salvas com sucesso!')
+  }
+
   return (
-    <div className="space-y-10 animate-fade-in max-w-5xl mx-auto pb-12">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground mt-1">Gerencie os parâmetros e acessos do sistema.</p>
+    <div className="max-w-4xl mx-auto space-y-6 pb-24 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
+          <p className="text-muted-foreground mt-1">
+            Gerencie os parâmetros e listas de apoio do sistema.
+          </p>
+        </div>
+        <Button onClick={handleSave}>
+          <Save className="w-4 h-4 mr-2" /> Salvar Alterações
+        </Button>
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-primary border-b pb-2">
-          Administração de usuários
-        </h2>
-        <UserManagement />
-      </div>
-
-      {isAdmin && (
-        <>
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-primary border-b pb-2">Nome da ficha</h2>
-            <Card>
-              <CardHeader>
-                <CardDescription>
-                  Defina o título exibido no cabeçalho da ficha de registro.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Input
-                  value={configuracoes.nomeFicha || ''}
-                  onChange={(e) => handleUpdate('nomeFicha', e.target.value)}
-                  placeholder="Ex: Ficha de Recebimento de Amostras - FPGQ012-B"
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-primary border-b pb-2">Cadastros Gerais</h2>
-            <div className="grid gap-6 md:grid-cols-2">
-              <ConfigList
-                title="Tipos de Amostra"
-                description="Gerencie os tipos disponíveis no registro de itens."
-                items={configuracoes.tiposAmostra || []}
-                onAdd={(v) => addToList('tiposAmostra', v)}
-                onRemove={(v) => removeFromList('tiposAmostra', v)}
-              />
-
-              <ConfigList
-                title="Formas de Recebimento"
-                description="Maneiras pelas quais as amostras chegam ao local."
-                items={configuracoes.formasRecebimento || []}
-                onAdd={(v) => addToList('formasRecebimento', v)}
-                onRemove={(v) => removeFromList('formasRecebimento', v)}
-              />
-
-              <ConfigList
-                title="Setor de usuários"
-                description="Setores disponíveis para associação aos perfis de usuários."
-                items={configuracoes.setores || []}
-                onAdd={(v) => addToList('setores', v)}
-                onRemove={(v) => removeFromList('setores', v)}
-                lockedItems={['Secretaria', 'Amostragem']}
-              />
-
-              <ConfigList
-                title="Setor de análise"
-                description="Setores de destino para as amostras."
-                items={configuracoes.setoresAnalise || []}
-                onAdd={(v) => addToList('setoresAnalise', v)}
-                onRemove={(v) => removeFromList('setoresAnalise', v)}
-              />
-
-              <ConfigList
-                title="Embalagens"
-                description="Tipos de embalagens disponíveis para as amostras."
-                items={configuracoes.embalagens || []}
-                onAdd={(v) => addToList('embalagens', v)}
-                onRemove={(v) => removeFromList('embalagens', v)}
-              />
-
-              <ConfigList
-                title="Unidade de medida (qtd amostral)"
-                description="Unidades de quantidade para amostras."
-                items={configuracoes.unidadesQtd || []}
-                onAdd={(v) => addToList('unidadesQtd', v)}
-                onRemove={(v) => removeFromList('unidadesQtd', v)}
-              />
-
-              <ConfigList
-                title="Unidade de medida (dosagem)"
-                description="Unidades de dosagem para amostras acabadas."
-                items={configuracoes.unidadesDosagem || []}
-                onAdd={(v) => addToList('unidadesDosagem', v)}
-                onRemove={(v) => removeFromList('unidadesDosagem', v)}
-              />
-
-              <ConfigList
-                title="Cidades e Estados"
-                description="Cidades pré-cadastradas para o preenchimento automático (Cidade-UF)."
-                items={configuracoes.cidadesEstados || []}
-                onAdd={(v) => addToList('cidadesEstados', v)}
-                onRemove={(v) => removeFromList('cidadesEstados', v)}
-                placeholder="Ex: São Paulo-SP"
-                searchable
+        <Card>
+          <CardHeader>
+            <CardTitle>Geral</CardTitle>
+            <CardDescription>Configurações gerais do sistema</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label>Nome do Formulário de Ficha</Label>
+              <Input
+                value={config.nomeFicha}
+                onChange={(e) => setConfig({ ...config, nomeFicha: e.target.value })}
               />
             </div>
-          </div>
-        </>
-      )}
+          </CardContent>
+        </Card>
+
+        <Tabs defaultValue="amostras">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full h-auto">
+            <TabsTrigger value="amostras" className="py-2">
+              Tipos de Amostra
+            </TabsTrigger>
+            <TabsTrigger value="recebimento" className="py-2">
+              Recebimento
+            </TabsTrigger>
+            <TabsTrigger value="setores" className="py-2">
+              Setores
+            </TabsTrigger>
+            <TabsTrigger value="unidades" className="py-2">
+              Unidades
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="amostras" className="space-y-4 mt-4">
+            <ListManager
+              title="Tipos de Amostra"
+              description="Cadastre os tipos de amostra disponíveis no sistema."
+              items={config.tiposAmostra}
+              onChange={(items) => handleUpdateList('tiposAmostra', items)}
+              lockedItems={['Produto Acabado Farmacêutico']}
+            />
+            <ListManager
+              title="Embalagens"
+              description="Tipos de embalagens primárias."
+              items={config.embalagens}
+              onChange={(items) => handleUpdateList('embalagens', items)}
+            />
+          </TabsContent>
+
+          <TabsContent value="recebimento" className="space-y-4 mt-4">
+            <ListManager
+              title="Formas de Recebimento"
+              description="Meios pelos quais as amostras chegam ao laboratório."
+              items={config.formasRecebimento}
+              onChange={(items) => handleUpdateList('formasRecebimento', items)}
+            />
+          </TabsContent>
+
+          <TabsContent value="setores" className="space-y-4 mt-4">
+            <ListManager
+              title="Setores da Empresa"
+              description="Setores para cadastro de usuários."
+              items={config.setores}
+              onChange={(items) => handleUpdateList('setores', items)}
+              lockedItems={['Secretaria', 'Amostragem']}
+            />
+            <ListManager
+              title="Setores de Análise"
+              description="Laboratórios de destino."
+              items={config.setoresAnalise}
+              onChange={(items) => handleUpdateList('setoresAnalise', items)}
+              lockedItems={['Físico-Químico', 'Microbiologia']}
+            />
+          </TabsContent>
+
+          <TabsContent value="unidades" className="space-y-4 mt-4">
+            <ListManager
+              title="Unidades de Quantidade"
+              description="Unidades de medida amostral."
+              items={config.unidadesQtd}
+              onChange={(items) => handleUpdateList('unidadesQtd', items)}
+            />
+            <ListManager
+              title="Unidades de Dosagem"
+              description="Unidades de concentração/dosagem."
+              items={config.unidadesDosagem}
+              onChange={(items) => handleUpdateList('unidadesDosagem', items)}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }
