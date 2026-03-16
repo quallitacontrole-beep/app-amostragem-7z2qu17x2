@@ -253,7 +253,7 @@ export default function Registro() {
 
       {itemsNeedingTagChange.length > 0 && user?.sector !== 'Secretaria' && (
         <div className="bg-warning/10 border border-warning/30 p-4 rounded-md space-y-3 animate-fade-in">
-          <h3 className="font-semibold text-warning-foreground flex items-center gap-2">
+          <h3 className="font-semibold text-warning-foreground flex items-center gap-2 text-[#ff0000]">
             <Tag className="w-5 h-5" />
             Ação Necessária: Troca de Etiqueta
           </h3>
