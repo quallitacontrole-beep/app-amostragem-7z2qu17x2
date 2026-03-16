@@ -89,6 +89,8 @@ const mockAuditLogs: AuditLog[] = [
 
 const defaultConfig: Configuracoes = {
   nomeFicha: 'Ficha de Recebimento de Amostras - FPGQ012-B',
+  formularioPadrao: 'FPGQ012-B',
+  revisaoFicha: '01',
   formasRecebimento: ['Correios', 'Motoboy', 'Balcão', 'Cliente', 'Coleta Quallità'],
   tiposAmostra: [
     'Produto Acabado Farmacêutico',

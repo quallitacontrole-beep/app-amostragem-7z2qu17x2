@@ -199,7 +199,7 @@ export default function Config() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-24 animate-fade-in">
+    <div className="max-w-4xl mx-auto space-y-6 pb-24 animate-fade-in print:hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
@@ -216,15 +216,33 @@ export default function Config() {
         <Card>
           <CardHeader>
             <CardTitle>Geral</CardTitle>
-            <CardDescription>Configurações gerais do sistema</CardDescription>
+            <CardDescription>Configurações gerais do sistema e documentos.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Nome do Formulário de Ficha</Label>
+              <Label>Nome do Formulário de Ficha (Apresentação na Tela)</Label>
               <Input
                 value={config.nomeFicha}
                 onChange={(e) => setConfig({ ...config, nomeFicha: e.target.value })}
               />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Formulário Padrão (Impressão PDF)</Label>
+                <Input
+                  value={config.formularioPadrao || ''}
+                  onChange={(e) => setConfig({ ...config, formularioPadrao: e.target.value })}
+                  placeholder="Ex: FPGQ012-B"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nº da Revisão da Ficha (Impressão PDF)</Label>
+                <Input
+                  value={config.revisaoFicha || ''}
+                  onChange={(e) => setConfig({ ...config, revisaoFicha: e.target.value })}
+                  placeholder="Ex: 01"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

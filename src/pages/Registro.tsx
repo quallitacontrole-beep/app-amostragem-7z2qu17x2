@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Send, AlertTriangle, ShieldAlert, Tag } from 'lucide-react'
+import { Save, Send, AlertTriangle, ShieldAlert, Tag, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Ficha, Ocorrencia } from '@/types'
@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import { RegistroHeader } from '@/components/RegistroHeader'
 import { RegistroItens } from '@/components/RegistroItens'
 import { StatusBadge } from '@/components/StatusBadge'
+import { PrintFichas } from '@/components/PrintFichas'
 import {
   Dialog,
   DialogContent,
@@ -25,7 +26,7 @@ import { isValidCpf, isValidCnpj, removeAccents } from '@/lib/utils'
 export default function Registro() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { fichas, addFicha, updateFicha, addAuditLog } = useAppStore()
+  const { fichas, addFicha, updateFicha, addAuditLog, configuracoes } = useAppStore()
   const { user } = useAuthStore()
   const [isOccModalOpen, setOccModalOpen] = useState(false)
   const [occText, setOccText] = useState('')
@@ -303,138 +304,155 @@ export default function Registro() {
   )
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in">
-      <div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">
-            {id ? 'Editar Ficha' : 'Registro de Ficha'}
-          </h1>
-          {id && <StatusBadge status={ficha.status} className="w-fit" />}
-        </div>
-        <p className="text-muted-foreground mt-1">Preencha os dados da amostra recebida.</p>
-      </div>
-
-      {itemsNeedingTagChange.length > 0 && user?.sector !== 'Secretaria' && (
-        <div className="bg-warning/10 border border-warning/30 p-4 rounded-md space-y-3 animate-fade-in">
-          <h3 className="font-semibold text-warning-foreground flex items-center gap-2 text-[#ff0000]">
-            <Tag className="w-5 h-5" />
-            Ação Necessária: Troca de Etiqueta
-          </h3>
-          <div className="space-y-2">
-            {itemsNeedingTagChange.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background p-3 rounded border border-warning/20 shadow-sm"
-              >
-                <div className="text-[13px]">
-                  <span className="font-semibold text-foreground">{item.descricao}</span>
-                  <div className="text-muted-foreground mt-1">
-                    Ordem de Serviço alterada de{' '}
-                    <span className="line-through">{item.ordemServicoAnterior}</span> para{' '}
-                    <span className="font-bold text-foreground">{item.ordemServico}</span>
-                  </div>
-                </div>
-                <Button size="sm" onClick={() => handleConfirmarTroca(item.id)}>
-                  Confirmar Troca Físicamente
-                </Button>
-              </div>
-            ))}
+    <>
+      <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in print:hidden">
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {id ? 'Editar Ficha' : 'Registro de Ficha'}
+            </h1>
+            {id && <StatusBadge status={ficha.status} className="w-fit" />}
           </div>
+          <p className="text-muted-foreground mt-1">Preencha os dados da amostra recebida.</p>
         </div>
-      )}
 
-      {hasResponses && (
-        <div className="bg-primary/10 border border-primary/20 p-4 rounded-md space-y-3 animate-fade-in">
-          <h3 className="font-semibold text-primary flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5" />
-            Mensagens da Secretaria
-          </h3>
-          <div className="space-y-2">
-            {ficha.ocorrencias
-              .filter((o) => o.respostaSecretaria)
-              .map((o) => (
-                <div key={o.id} className="bg-background border rounded p-3 text-[13px] shadow-sm">
-                  <div className="font-semibold text-muted-foreground mb-1 uppercase tracking-wider text-[10px]">
-                    Pendência Original: {o.descricao}
+        {itemsNeedingTagChange.length > 0 && user?.sector !== 'Secretaria' && (
+          <div className="bg-warning/10 border border-warning/30 p-4 rounded-md space-y-3 animate-fade-in">
+            <h3 className="font-semibold text-warning-foreground flex items-center gap-2 text-[#ff0000]">
+              <Tag className="w-5 h-5" />
+              Ação Necessária: Troca de Etiqueta
+            </h3>
+            <div className="space-y-2">
+              {itemsNeedingTagChange.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background p-3 rounded border border-warning/20 shadow-sm"
+                >
+                  <div className="text-[13px]">
+                    <span className="font-semibold text-foreground">{item.descricao}</span>
+                    <div className="text-muted-foreground mt-1">
+                      Ordem de Serviço alterada de{' '}
+                      <span className="line-through">{item.ordemServicoAnterior}</span> para{' '}
+                      <span className="font-bold text-foreground">{item.ordemServico}</span>
+                    </div>
                   </div>
-                  <div className="text-foreground">
-                    <span className="font-semibold text-primary">Resposta:</span>{' '}
-                    {o.respostaSecretaria}
-                  </div>
+                  <Button size="sm" onClick={() => handleConfirmarTroca(item.id)}>
+                    Confirmar Troca Físicamente
+                  </Button>
                 </div>
               ))}
+            </div>
           </div>
-        </div>
-      )}
-
-      <RegistroHeader ficha={ficha} setFicha={setFicha} />
-      <RegistroItens
-        itens={ficha.itens}
-        setItens={(itens) => setFicha({ ...ficha, itens })}
-        codigoContrato={ficha.codigoContrato}
-      />
-
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem]">
-        {user?.sector !== 'Secretaria' && (
-          <Button
-            variant="destructive"
-            className="mr-auto"
-            onClick={() => setOccModalOpen(true)}
-            disabled={ficha.status === 'Finalizada'}
-          >
-            <AlertTriangle className="mr-2 h-4 w-4" /> Resolução Secretaria
-          </Button>
         )}
-        {user?.sector !== 'Secretaria' && (
-          <Button variant="outline" onClick={handleSaveDraft}>
-            <Save className="mr-2 h-4 w-4" /> Salvar
-          </Button>
+
+        {hasResponses && (
+          <div className="bg-primary/10 border border-primary/20 p-4 rounded-md space-y-3 animate-fade-in">
+            <h3 className="font-semibold text-primary flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5" />
+              Mensagens da Secretaria
+            </h3>
+            <div className="space-y-2">
+              {ficha.ocorrencias
+                .filter((o) => o.respostaSecretaria)
+                .map((o) => (
+                  <div
+                    key={o.id}
+                    className="bg-background border rounded p-3 text-[13px] shadow-sm"
+                  >
+                    <div className="font-semibold text-muted-foreground mb-1 uppercase tracking-wider text-[10px]">
+                      Pendência Original: {o.descricao}
+                    </div>
+                    <div className="text-foreground">
+                      <span className="font-semibold text-primary">Resposta:</span>{' '}
+                      {o.respostaSecretaria}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
         )}
-        <Button
-          onClick={handleSubmit}
-          disabled={user?.sector !== 'Secretaria' && ficha.status === 'Finalizada'}
-        >
-          {user?.sector === 'Secretaria' ? (
-            <Save className="mr-2 h-4 w-4" />
-          ) : (
-            <Send className="mr-2 h-4 w-4" />
+
+        <RegistroHeader ficha={ficha} setFicha={setFicha} />
+        <RegistroItens
+          itens={ficha.itens}
+          setItens={(itens) => setFicha({ ...ficha, itens })}
+          codigoContrato={ficha.codigoContrato}
+        />
+
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem] print:hidden">
+          {user?.sector === 'Secretaria' && id && (
+            <Button
+              variant="outline"
+              className="mr-auto"
+              onClick={() => window.print()}
+              type="button"
+            >
+              <Printer className="mr-2 h-4 w-4" /> Imprimir Ficha
+            </Button>
           )}
-          {user?.sector === 'Secretaria' ? 'Salvar Alterações' : 'Enviar Secretaria'}
-        </Button>
+          {user?.sector !== 'Secretaria' && (
+            <Button
+              variant="destructive"
+              className="mr-auto"
+              onClick={() => setOccModalOpen(true)}
+              disabled={ficha.status === 'Finalizada'}
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" /> Resolução Secretaria
+            </Button>
+          )}
+          {user?.sector !== 'Secretaria' && (
+            <Button variant="outline" onClick={handleSaveDraft}>
+              <Save className="mr-2 h-4 w-4" /> Salvar
+            </Button>
+          )}
+          <Button
+            onClick={handleSubmit}
+            disabled={user?.sector !== 'Secretaria' && ficha.status === 'Finalizada'}
+          >
+            {user?.sector === 'Secretaria' ? (
+              <Save className="mr-2 h-4 w-4" />
+            ) : (
+              <Send className="mr-2 h-4 w-4" />
+            )}
+            {user?.sector === 'Secretaria' ? 'Salvar Alterações' : 'Enviar Secretaria'}
+          </Button>
+        </div>
+
+        <Dialog open={isOccModalOpen} onOpenChange={setOccModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reportar Resolução de Pendência</DialogTitle>
+              <DialogDescription>
+                A ficha será enviada para a Secretaria com status de pendência.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <Input value={ficha.clienteNome} disabled className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição do Caso</Label>
+                <Textarea
+                  placeholder="Explique o motivo da ocorrência..."
+                  value={occText}
+                  onChange={(e) => setOccText(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOccModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={handleOcorrenciaSubmit}>
+                Gerar ocorrência
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Dialog open={isOccModalOpen} onOpenChange={setOccModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reportar Resolução de Pendência</DialogTitle>
-            <DialogDescription>
-              A ficha será enviada para a Secretaria com status de pendência.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Cliente</Label>
-              <Input value={ficha.clienteNome} disabled className="bg-muted" />
-            </div>
-            <div className="space-y-2">
-              <Label>Descrição do Caso</Label>
-              <Textarea
-                placeholder="Explique o motivo da ocorrência..."
-                value={occText}
-                onChange={(e) => setOccText(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOccModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleOcorrenciaSubmit}>
-              Gerar ocorrência
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+      {id && <PrintFichas fichas={[ficha]} config={configuracoes} />}
+    </>
   )
 }

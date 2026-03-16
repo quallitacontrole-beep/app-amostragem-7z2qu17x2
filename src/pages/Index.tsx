@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Calendar as CalendarIcon,
   Tag,
+  Printer,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -34,6 +36,7 @@ import { format } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { PrintFichas } from '@/components/PrintFichas'
 
 const formatName = (name: string) => {
   if (!name) return ''
@@ -44,11 +47,13 @@ const formatName = (name: string) => {
 }
 
 export default function Index() {
-  const { fichas, updateFicha, addAuditLog, notifications, markNotificationAsRead } = useAppStore()
+  const { fichas, updateFicha, addAuditLog, notifications, markNotificationAsRead, configuracoes } =
+    useAppStore()
   const { user } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null)
+  const [selectedForPrint, setSelectedForPrint] = useState<string[]>([])
 
   const getInitialDateRange = (): DateRange => {
     const today = new Date()
@@ -182,328 +187,363 @@ export default function Index() {
     toast.success('Troca física de etiqueta confirmada com sucesso.')
   }
 
+  const handlePrintBatch = () => {
+    if (selectedForPrint.length === 0) return
+    window.print()
+  }
+
   return (
-    <div className="space-y-8 animate-fade-in pb-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Visão geral do recebimento de amostras.</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full sm:w-[260px] justify-start text-left font-normal shadow-sm bg-card',
-                  !dateRange && 'text-muted-foreground',
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <span className="truncate">
-                      {format(dateRange.from, 'dd/MM/yyyy')} - {format(dateRange.to, 'dd/MM/yyyy')}
-                    </span>
+    <>
+      <div className="space-y-8 animate-fade-in pb-10 print:hidden">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Visão geral do recebimento de amostras.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full sm:w-[260px] justify-start text-left font-normal shadow-sm bg-card',
+                    !dateRange && 'text-muted-foreground',
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <span className="truncate">
+                        {format(dateRange.from, 'dd/MM/yyyy')} -{' '}
+                        {format(dateRange.to, 'dd/MM/yyyy')}
+                      </span>
+                    ) : (
+                      <span>{format(dateRange.from, 'dd/MM/yyyy')}</span>
+                    )
                   ) : (
-                    <span>{format(dateRange.from, 'dd/MM/yyyy')}</span>
-                  )
-                ) : (
-                  <span>Selecione o período</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
-          <div className="flex w-full sm:w-auto items-center gap-2">
-            {canRegister && (
-              <Button asChild size="default" className="shadow-md flex-1 sm:flex-initial">
-                <Link to="/registro">
-                  Nova Ficha <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            )}
-            {canViewPending && (
-              <Button
-                asChild
-                size="default"
-                className="shadow-md flex-1 sm:flex-initial"
-                variant="secondary"
-              >
-                <Link to="/pendencias">
-                  Pendências <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            )}
+                    <span>Selecione o período</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+            <div className="flex w-full sm:w-auto items-center gap-2">
+              {canRegister && (
+                <Button asChild size="default" className="shadow-md flex-1 sm:flex-initial">
+                  <Link to="/registro">
+                    Nova Ficha <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+              {canViewPending && (
+                <Button
+                  asChild
+                  size="default"
+                  className="shadow-md flex-1 sm:flex-initial"
+                  variant="secondary"
+                >
+                  <Link to="/pendencias">
+                    Pendências <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {tagChangeAlerts.length > 0 && (
-        <div className="space-y-4 animate-fade-in-down">
-          <h2 className="text-lg font-semibold flex items-center gap-2 text-warning-foreground">
-            <Tag className="h-5 w-5" />
-            Central de Alertas: Troca de Etiqueta
-          </h2>
-          <Card className="border-warning/40 shadow-sm bg-warning/5 overflow-hidden">
-            <CardContent className="p-0">
-              <ScrollArea
-                className={cn('px-4 py-4', tagChangeAlerts.length > 3 ? 'h-[280px]' : '')}
-              >
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {tagChangeAlerts.map(({ fichaId, ficha, item }) => (
-                    <div
-                      key={`${fichaId}-${item.id}`}
-                      className="bg-background border border-warning/20 rounded-md p-3 shadow-sm flex flex-col justify-between gap-3"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-semibold text-foreground">
-                            Ficha {fichaId}
-                          </span>
-                          <StatusBadge status={ficha.status} className="scale-75 origin-right" />
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-snug">
-                          Amostra:{' '}
-                          <span className="font-medium text-foreground">{item.descricao}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          OS alterada:{' '}
-                          <span className="line-through">{item.ordemServicoAnterior}</span> →{' '}
-                          <span className="font-bold text-foreground">{item.ordemServico}</span>
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        className="w-full bg-warning hover:bg-warning/90 text-warning-foreground shadow-sm"
-                        onClick={() => handleConfirmTagChange(fichaId, item.id)}
+        {tagChangeAlerts.length > 0 && (
+          <div className="space-y-4 animate-fade-in-down">
+            <h2 className="text-lg font-semibold flex items-center gap-2 text-warning-foreground">
+              <Tag className="h-5 w-5" />
+              Central de Alertas: Troca de Etiqueta
+            </h2>
+            <Card className="border-warning/40 shadow-sm bg-warning/5 overflow-hidden">
+              <CardContent className="p-0">
+                <ScrollArea
+                  className={cn('px-4 py-4', tagChangeAlerts.length > 3 ? 'h-[280px]' : '')}
+                >
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {tagChangeAlerts.map(({ fichaId, ficha, item }) => (
+                      <div
+                        key={`${fichaId}-${item.id}`}
+                        className="bg-background border border-warning/20 rounded-md p-3 shadow-sm flex flex-col justify-between gap-3"
                       >
-                        Confirmar Troca Física
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-semibold text-foreground">
+                              Ficha {fichaId}
+                            </span>
+                            <StatusBadge status={ficha.status} className="scale-75 origin-right" />
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-snug">
+                            Amostra:{' '}
+                            <span className="font-medium text-foreground">{item.descricao}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            OS alterada:{' '}
+                            <span className="line-through">{item.ordemServicoAnterior}</span> →{' '}
+                            <span className="font-bold text-foreground">{item.ordemServico}</span>
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full bg-warning hover:bg-warning/90 text-warning-foreground shadow-sm"
+                          onClick={() => handleConfirmTagChange(fichaId, item.id)}
+                        >
+                          Confirmar Troca Física
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-primary">Em Triagem</CardTitle>
+              <ClipboardList className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">{counts.triagem}</div>
+              <p className="text-[10px] text-muted-foreground mt-1">Amostras em processo inicial</p>
+            </CardContent>
+          </Card>
+          <Card className="border-[#FF0000]/20 bg-[#FF0000]/5">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-[#FF0000] truncate pr-2">
+                Aguardando Secretaria
+              </CardTitle>
+              <AlertCircle className="h-4 w-4 text-[#FF0000] shrink-0" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-[#FF0000]">{counts.secretaria}</div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Esperando por resposta da Secretaria
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-purple-500/20 bg-purple-500/5">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-purple-600 truncate pr-2">
+                Validação Secretaria
+              </CardTitle>
+              <ShieldCheck className="h-4 w-4 text-purple-600 shrink-0" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{counts.validacao}</div>
+              <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
+                Amostragem finalizada e enviadas à Secretaria
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-success/20 bg-success/5">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-success">Finalizadas</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-success">{counts.resolvida}</div>
+              <p className="text-[10px] text-muted-foreground mt-1">Prontas para análise</p>
             </CardContent>
           </Card>
         </div>
-      )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-primary">Em Triagem</CardTitle>
-            <ClipboardList className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{counts.triagem}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Amostras em processo inicial</p>
-          </CardContent>
-        </Card>
-        <Card className="border-[#FF0000]/20 bg-[#FF0000]/5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[#FF0000] truncate pr-2">
-              Aguardando Secretaria
-            </CardTitle>
-            <AlertCircle className="h-4 w-4 text-[#FF0000] shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-[#FF0000]">{counts.secretaria}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Esperando por resposta da Secretaria
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-purple-500/20 bg-purple-500/5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-purple-600 truncate pr-2">
-              Validação Secretaria
-            </CardTitle>
-            <ShieldCheck className="h-4 w-4 text-purple-600 shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{counts.validacao}</div>
-            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
-              Amostragem finalizada e enviadas à Secretaria
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-success/20 bg-success/5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-success">Finalizadas</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-success">{counts.resolvida}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Prontas para análise</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {user?.sector === 'Secretaria' && (
-        <Card className="border-[#FF0000]/40 shadow-sm">
-          <CardHeader className="bg-[#FF0000]/5 border-b border-[#FF0000]/10 pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-[#FF0000]" />
-              Pendências da Secretaria
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {pendingFichasForSecretaria.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhuma pendência encontrada para o seu setor.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {pendingFichasForSecretaria.map((ficha) => {
-                  const dataReceb = ficha.dataRecebimento
-                    ? format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')
-                    : ''
-                  return (
-                    <div
-                      key={ficha.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-md border bg-card hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {ficha.id} - {ficha.clienteNome}
-                            {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
-                          </span>
-                          <StatusBadge status={ficha.status} className="scale-90 origin-left" />
+        {user?.sector === 'Secretaria' && (
+          <Card className="border-[#FF0000]/40 shadow-sm">
+            <CardHeader className="bg-[#FF0000]/5 border-b border-[#FF0000]/10 pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-[#FF0000]" />
+                Pendências da Secretaria
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {pendingFichasForSecretaria.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhuma pendência encontrada para o seu setor.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {pendingFichasForSecretaria.map((ficha) => {
+                    const dataReceb = ficha.dataRecebimento
+                      ? format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')
+                      : ''
+                    return (
+                      <div
+                        key={ficha.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-md border bg-card hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">
+                              {ficha.id} - {ficha.clienteNome}
+                              {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
+                            </span>
+                            <StatusBadge status={ficha.status} className="scale-90 origin-left" />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Recebida em {dataReceb} por {ficha.responsavel}
+                          </p>
                         </div>
+                        <Button size="sm" onClick={() => setSelectedFicha(ficha)}>
+                          <FileEdit className="h-4 w-4 mr-2" />
+                          Tratar Pendência
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <CardTitle>Atividade no Período</CardTitle>
+              {user?.sector === 'Secretaria' && selectedForPrint.length > 0 && (
+                <Button size="sm" variant="outline" onClick={handlePrintBatch}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimir ({selectedForPrint.length})
+                </Button>
+              )}
+            </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por ID, Cliente ou Usuário..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {paginatedFichas.map((ficha) => {
+                const dataReceb = ficha.dataRecebimento
+                  ? format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')
+                  : ''
+
+                return (
+                  <div
+                    key={ficha.id}
+                    className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 group"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      {user?.sector === 'Secretaria' && (
+                        <Checkbox
+                          checked={selectedForPrint.includes(ficha.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) setSelectedForPrint([...selectedForPrint, ficha.id])
+                            else
+                              setSelectedForPrint(selectedForPrint.filter((id) => id !== ficha.id))
+                          }}
+                        />
+                      )}
+                      <div className="space-y-1">
+                        <Link
+                          to={`/registro/${ficha.id}`}
+                          className="font-medium text-sm text-foreground hover:text-primary transition-colors"
+                        >
+                          {ficha.id} - {ficha.clienteNome}
+                          {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
+                        </Link>
                         <p className="text-xs text-muted-foreground">
                           Recebida em {dataReceb} por {ficha.responsavel}
                         </p>
                       </div>
-                      <Button size="sm" onClick={() => setSelectedFicha(ficha)}>
-                        <FileEdit className="h-4 w-4 mr-2" />
-                        Tratar Pendência
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <StatusBadge status={ficha.status} />
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Link to={`/registro/${ficha.id}`}>
+                          <ChevronRight className="h-4 w-4" />
+                        </Link>
                       </Button>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                  </div>
+                )
+              })}
+              {paginatedFichas.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {searchQuery ? 'Nenhum registro encontrado.' : 'Nenhuma atividade recente.'}
+                </p>
+              )}
+
+              {totalPages > 1 && (
+                <div className="pt-4 border-t mt-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setCurrentPage((p) => Math.max(1, p - 1))
+                          }}
+                          className={
+                            currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                          }
+                        />
+                      </PaginationItem>
+                      <span className="text-sm text-muted-foreground mx-4">
+                        Página {currentPage} de {totalPages}
+                      </span>
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setCurrentPage((p) => Math.min(totalPages, p + 1))
+                          }}
+                          className={
+                            currentPage === totalPages
+                              ? 'pointer-events-none opacity-50'
+                              : 'cursor-pointer'
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
+
+        <PendenciaModal
+          isOpen={!!selectedFicha}
+          ficha={selectedFicha}
+          onClose={() => setSelectedFicha(null)}
+          onSave={handleUpdateAndLog}
+        />
+      </div>
+
+      {selectedForPrint.length > 0 && (
+        <PrintFichas
+          fichas={fichas.filter((f) => selectedForPrint.includes(f.id))}
+          config={configuracoes}
+        />
       )}
-
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <CardTitle>Atividade no Período</CardTitle>
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por ID, Cliente ou Usuário..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {paginatedFichas.map((ficha) => {
-              const dataReceb = ficha.dataRecebimento
-                ? format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')
-                : ''
-
-              return (
-                <div
-                  key={ficha.id}
-                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 group"
-                >
-                  <div className="space-y-1">
-                    <Link
-                      to={`/registro/${ficha.id}`}
-                      className="font-medium text-sm text-foreground hover:text-primary transition-colors"
-                    >
-                      {ficha.id} - {ficha.clienteNome}
-                      {ficha.codigoContrato ? ` - ${ficha.codigoContrato}` : ''}
-                    </Link>
-                    <p className="text-xs text-muted-foreground">
-                      Recebida em {dataReceb} por {ficha.responsavel}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <StatusBadge status={ficha.status} />
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Link to={`/registro/${ficha.id}`}>
-                        <ChevronRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              )
-            })}
-            {paginatedFichas.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                {searchQuery ? 'Nenhum registro encontrado.' : 'Nenhuma atividade recente.'}
-              </p>
-            )}
-
-            {totalPages > 1 && (
-              <div className="pt-4 border-t mt-4">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          setCurrentPage((p) => Math.max(1, p - 1))
-                        }}
-                        className={
-                          currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-                        }
-                      />
-                    </PaginationItem>
-                    <span className="text-sm text-muted-foreground mx-4">
-                      Página {currentPage} de {totalPages}
-                    </span>
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          setCurrentPage((p) => Math.min(totalPages, p + 1))
-                        }}
-                        className={
-                          currentPage === totalPages
-                            ? 'pointer-events-none opacity-50'
-                            : 'cursor-pointer'
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <PendenciaModal
-        isOpen={!!selectedFicha}
-        ficha={selectedFicha}
-        onClose={() => setSelectedFicha(null)}
-        onSave={handleUpdateAndLog}
-      />
-    </div>
+    </>
   )
 }

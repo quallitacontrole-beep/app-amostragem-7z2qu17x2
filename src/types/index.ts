@@ -53,6 +53,8 @@ export interface Ficha {
 
 export interface Configuracoes {
   nomeFicha: string
+  formularioPadrao?: string
+  revisaoFicha?: string
   formasRecebimento: string[]
   tiposAmostra: string[]
   setores: string[]
