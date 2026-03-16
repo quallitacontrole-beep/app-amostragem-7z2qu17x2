@@ -97,14 +97,7 @@ const defaultConfig: Configuracoes = {
     'Cosmético',
     'Alimento',
   ],
-  setores: [
-    'Amostragem',
-    'Secretaria',
-    'Físico-Químico',
-    'Microbiologia',
-    'Estabilidade',
-    'Diretoria',
-  ],
+  setores: ['Amostragem', 'Secretaria'],
   setoresAnalise: ['Físico-Químico', 'Microbiologia', 'Estabilidade'],
   embalagens: [
     'Frasco PET',

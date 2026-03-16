@@ -109,7 +109,7 @@ export default function Register() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sector">Setor</Label>
+                <Label htmlFor="sector">Setores da empresa</Label>
                 <Select value={sector} onValueChange={setSector}>
                   <SelectTrigger>
                     <SelectValue placeholder="Opcional" />

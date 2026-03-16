@@ -299,7 +299,7 @@ export default function Config() {
           </TabsContent>
 
           <TabsContent value="usuarios" className="space-y-4 mt-4">
-            <UserManagement />
+            <UserManagement setoresList={config.setores} />
           </TabsContent>
         </Tabs>
       </div>

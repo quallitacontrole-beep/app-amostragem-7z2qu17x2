@@ -42,10 +42,12 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 
-export function UserManagement() {
+export function UserManagement({ setoresList }: { setoresList?: string[] }) {
   const { user, getAllUsers, createUser, updateUser, deleteUser } = useAuthStore()
   const { configuracoes } = useAppStore()
   const isAdmin = user?.role === 'Administrador'
+
+  const currentSetores = setoresList || configuracoes.setores || []
 
   const [users, setUsers] = useState<any[]>([])
   const [isModalOpen, setModalOpen] = useState(false)
@@ -78,7 +80,7 @@ export function UserManagement() {
         email: u.email,
         pass: u.pass || '',
         role: u.role || 'Usuário',
-        sector: configuracoes.setores?.includes(u.sector) ? u.sector : '',
+        sector: currentSetores.includes(u.sector) ? u.sector : '',
       })
     } else {
       setEditingUser(null)
@@ -91,7 +93,7 @@ export function UserManagement() {
     if (!form.name || !form.email) return toast.error('Nome e login são obrigatórios.')
     if (!form.pass) return toast.error('Senha é obrigatória.')
 
-    if (form.sector && !configuracoes.setores?.includes(form.sector)) {
+    if (form.sector && !currentSetores.includes(form.sector)) {
       return toast.error(
         'O setor selecionado é inválido ou não existe mais. Selecione um válido da lista.',
       )
@@ -154,9 +156,7 @@ export function UserManagement() {
                       {u.role}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {configuracoes.setores?.includes(u.sector) ? u.sector : '-'}
-                  </TableCell>
+                  <TableCell>{currentSetores.includes(u.sector) ? u.sector : '-'}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => handleOpenModal(u)}>
                       <Edit className="h-4 w-4" />
@@ -253,7 +253,7 @@ export function UserManagement() {
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {configuracoes.setores?.map((s) => (
+                      {currentSetores.map((s) => (
                         <SelectItem key={s} value={s}>
                           {s}
                         </SelectItem>
