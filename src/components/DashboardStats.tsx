@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Ficha } from '@/types'
 import { isWithinInterval, startOfDay, endOfDay } from 'date-fns'
-import { FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { FileText, Send, AlertCircle, CheckCircle } from 'lucide-react'
 
 export function DashboardStats({
   fichas,
@@ -23,10 +23,12 @@ export function DashboardStats({
   }, [fichas, dateRange])
 
   const total = filteredFichas.length
-  const concluidas = filteredFichas.filter((f) => f.status === 'Finalizada').length
-  const emAndamento = filteredFichas.filter((f) => f.status !== 'Finalizada').length
-  const comOcorrencia = filteredFichas.filter((f) =>
-    f.ocorrencias?.some((o) => !o.resolvida),
+  const finalizadas = filteredFichas.filter((f) => f.status === 'Finalizada').length
+  const enviadoSecretaria = filteredFichas.filter(
+    (f) => f.status === 'Validação Secretaria' || f.status === 'Aguardando Validação',
+  ).length
+  const aguardandoSecretaria = filteredFichas.filter(
+    (f) => f.status === 'Aguardando Secretaria',
   ).length
 
   return (
@@ -35,7 +37,7 @@ export function DashboardStats({
         <Card className="bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-400">
-              Total de Registros
+              Total de registros
             </CardTitle>
             <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </CardHeader>
@@ -47,19 +49,36 @@ export function DashboardStats({
           </CardContent>
         </Card>
 
-        <Card className="bg-orange-50/50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-900/50">
+        <Card className="bg-purple-50/50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-400">
-              Em Andamento
+            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-400">
+              Enviado Secretaria
             </CardTitle>
-            <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            <Send className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-              {emAndamento}
+            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+              {enviadoSecretaria}
             </div>
-            <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1">
-              Aguardando triagem ou validação
+            <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-1">
+              Fichas enviadas da amostragem à secretaria
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-red-700 dark:text-red-400">
+              Aguardando Secretaria
+            </CardTitle>
+            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+              {aguardandoSecretaria}
+            </div>
+            <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
+              Amostragem aguardando resolução da secretaria
             </p>
           </CardContent>
         </Card>
@@ -73,25 +92,10 @@ export function DashboardStats({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
-              {concluidas}
+              {finalizadas}
             </div>
             <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1">
-              Processo concluído com sucesso
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-700 dark:text-red-400">
-              Com Ocorrências
-            </CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-900 dark:text-red-100">{comOcorrencia}</div>
-            <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
-              Requerem atenção da equipe
+              Fichas finalizadas pela secretaria
             </p>
           </CardContent>
         </Card>

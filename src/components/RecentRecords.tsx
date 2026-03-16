@@ -39,7 +39,7 @@ export function RecentRecords({
       const dateStr = f.dataRecebimento ? format(new Date(f.dataRecebimento), 'dd/MM/yyyy') : ''
       return (
         f.id.toLowerCase().includes(s) ||
-        f.clienteNome.toLowerCase().includes(s) ||
+        (f.clienteNome || '').toLowerCase().includes(s) ||
         f.status.toLowerCase().includes(s) ||
         dateStr.includes(s)
       )
