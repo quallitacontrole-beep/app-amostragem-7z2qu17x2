@@ -41,6 +41,9 @@ export function DashboardStats({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{total}</div>
+            <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
+              No período selecionado
+            </p>
           </CardContent>
         </Card>
 
@@ -55,6 +58,9 @@ export function DashboardStats({
             <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
               {emAndamento}
             </div>
+            <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1">
+              Aguardando triagem ou validação
+            </p>
           </CardContent>
         </Card>
 
@@ -69,6 +75,9 @@ export function DashboardStats({
             <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
               {concluidas}
             </div>
+            <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1">
+              Processo concluído com sucesso
+            </p>
           </CardContent>
         </Card>
 
@@ -81,6 +90,9 @@ export function DashboardStats({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-900 dark:text-red-100">{comOcorrencia}</div>
+            <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
+              Requerem atenção da equipe
+            </p>
           </CardContent>
         </Card>
       </div>

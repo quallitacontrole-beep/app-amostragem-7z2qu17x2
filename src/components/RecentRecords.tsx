@@ -34,8 +34,8 @@ export function RecentRecords({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const filteredFichas = useMemo(() => {
+    const s = searchTerm.toLowerCase().trim()
     return fichas.filter((f) => {
-      const s = searchTerm.toLowerCase()
       const dateStr = f.dataRecebimento ? format(new Date(f.dataRecebimento), 'dd/MM/yyyy') : ''
       return (
         f.id.toLowerCase().includes(s) ||
