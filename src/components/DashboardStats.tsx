@@ -49,23 +49,6 @@ export function DashboardStats({
           </CardContent>
         </Card>
 
-        <Card className="bg-purple-50/50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-400">
-              Enviado Secretaria
-            </CardTitle>
-            <Send className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-              {enviadoSecretaria}
-            </div>
-            <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-1">
-              Fichas enviadas da amostragem à secretaria
-            </p>
-          </CardContent>
-        </Card>
-
         <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-red-700 dark:text-red-400">
@@ -79,6 +62,23 @@ export function DashboardStats({
             </div>
             <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
               Amostragem aguardando resolução da secretaria
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-purple-50/50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-400">
+              Enviado Secretaria
+            </CardTitle>
+            <Send className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+              {enviadoSecretaria}
+            </div>
+            <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-1">
+              Fichas enviadas da amostragem à secretaria
             </p>
           </CardContent>
         </Card>

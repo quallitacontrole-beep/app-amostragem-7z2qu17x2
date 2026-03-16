@@ -63,108 +63,111 @@ export function RecentRecords({
   const selectedFichas = fichas.filter((f) => selectedIds.has(f.id))
 
   return (
-    <Card className="print:hidden">
-      <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Registros Recentes</CardTitle>
-          <CardDescription>Acompanhe e filtre os recebimentos de amostras.</CardDescription>
-        </div>
-        {canAccessSecretariaFeatures && selectedIds.size > 0 && (
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Printer className="mr-2 h-4 w-4" /> Imprimir ({selectedIds.size})
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center space-x-2 mb-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar por cliente, ID, data (dd/mm/aaaa) ou status..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <>
+      <Card className="print:hidden">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Registros Recentes</CardTitle>
+            <CardDescription>Acompanhe e filtre os recebimentos de amostras.</CardDescription>
           </div>
-        </div>
+          {canAccessSecretariaFeatures && selectedIds.size > 0 && (
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <Printer className="mr-2 h-4 w-4" /> Imprimir ({selectedIds.size})
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por cliente, ID, data (dd/mm/aaaa) ou status..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
 
-        <div className="border rounded-md bg-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {canAccessSecretariaFeatures && (
-                  <TableHead className="w-[50px] text-center">
-                    <Checkbox
-                      checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                )}
-                <TableHead>ID do Registro</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Data de Recebimento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredFichas.length === 0 ? (
+          <div className="border rounded-md bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={canAccessSecretariaFeatures ? 6 : 5}
-                    className="text-center h-24 text-muted-foreground"
-                  >
-                    Nenhum registro encontrado.
-                  </TableCell>
+                  {canAccessSecretariaFeatures && (
+                    <TableHead className="w-[50px] text-center">
+                      <Checkbox
+                        checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                  )}
+                  <TableHead>ID do Registro</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Data de Recebimento</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ) : (
-                filteredFichas.map((f) => (
-                  <TableRow
-                    key={f.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate(`/registro/${f.id}`)}
-                  >
-                    {canAccessSecretariaFeatures && (
-                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selectedIds.has(f.id)}
-                          onCheckedChange={(c) => handleSelectOne(f.id, !!c)}
-                        />
-                      </TableCell>
-                    )}
-                    <TableCell className="font-medium text-[13px]">{f.id}</TableCell>
-                    <TableCell className="font-semibold text-[13px]">
-                      {f.clienteNome || '-'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-[13px]">
-                      {f.dataRecebimento ? format(new Date(f.dataRecebimento), 'dd/MM/yyyy') : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={f.status} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigate(`/registro/${f.id}`)
-                        }}
-                      >
-                        <FileText className="h-4 w-4 mr-2" /> Abrir
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {filteredFichas.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={canAccessSecretariaFeatures ? 6 : 5}
+                      className="text-center h-24 text-muted-foreground"
+                    >
+                      Nenhum registro encontrado.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        {selectedFichas.length > 0 && (
-          <PrintFichas fichas={selectedFichas} config={configuracoes} />
-        )}
-      </CardContent>
-    </Card>
+                ) : (
+                  filteredFichas.map((f) => (
+                    <TableRow
+                      key={f.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/registro/${f.id}`)}
+                    >
+                      {canAccessSecretariaFeatures && (
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(f.id)}
+                            onCheckedChange={(c) => handleSelectOne(f.id, !!c)}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell className="font-medium text-[13px]">{f.id}</TableCell>
+                      <TableCell className="font-semibold text-[13px]">
+                        {f.clienteNome || '-'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-[13px]">
+                        {f.dataRecebimento
+                          ? format(new Date(f.dataRecebimento), 'dd/MM/yyyy')
+                          : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={f.status} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/registro/${f.id}`)
+                          }}
+                        >
+                          <FileText className="h-4 w-4 mr-2" /> Abrir
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedFichas.length > 0 && <PrintFichas fichas={selectedFichas} config={configuracoes} />}
+    </>
   )
 }

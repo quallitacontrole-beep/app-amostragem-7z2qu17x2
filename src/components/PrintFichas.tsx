@@ -5,7 +5,7 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
   if (!fichas || fichas.length === 0) return null
 
   return (
-    <div className="hidden print:block w-full bg-white text-black text-[13px] absolute top-0 left-0 z-[9999]">
+    <div className="hidden print:block w-full bg-white text-black text-[13px] relative z-50">
       <style type="text/css" media="print">
         {`
           @page { size: A4; margin: 15mm; }
@@ -21,7 +21,7 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
             page-break-after: always; 
             position: relative; 
             min-height: 92vh; 
-            padding-bottom: 30px; 
+            padding-bottom: 40px; 
           }
           .ficha-print-page:last-child { 
             break-after: auto; 
