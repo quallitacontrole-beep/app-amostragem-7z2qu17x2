@@ -44,12 +44,14 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   const [localFicha, setLocalFicha] = useState<Ficha | null>(null)
   const [respostas, setRespostas] = useState<Record<string, string>>({})
   const [localTagConfirm, setLocalTagConfirm] = useState(false)
+  const [activeTab, setActiveTab] = useState('acoes')
 
   useEffect(() => {
     if (ficha && isOpen) {
       setLocalFicha(JSON.parse(JSON.stringify(ficha)))
       setRespostas({})
       setLocalTagConfirm(false)
+      setActiveTab('acoes')
     }
   }, [ficha, isOpen])
 
@@ -253,8 +255,13 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
   const handleSaveParcial = () => {
     onSave(prepareFichaForSave() as Ficha)
-    onClose()
-    toast.info('Alterações salvas parcialmente.')
+    if (activeTab === 'edicao') {
+      setActiveTab('acoes')
+      toast.info('Alterações salvas. Retornando para Ações e Ocorrências.')
+    } else {
+      onClose()
+      toast.info('Alterações salvas parcialmente.')
+    }
   }
 
   const CheckItem = ({ label, ok }: { label: string; ok: boolean }) => (
@@ -282,7 +289,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain bg-background">
-          <Tabs defaultValue="acoes" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="px-4 sm:px-6 border-b bg-muted/20">
               <TabsList className="w-full justify-start rounded-none border-0 bg-transparent p-0 h-auto">
                 <TabsTrigger
@@ -349,7 +356,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
               >
                 <Label className="text-base font-semibold block mb-4">Checklist de Validação</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <CheckItem label="Contrato Validado" ok={isContratoValidado} />
+                  <CheckItem label="Contrato preenchido" ok={isContratoValidado} />
                   <CheckItem label="Vínculo de OS" ok={isOsVinculado} />
                   <CheckItem label="Ocorrências Zeradas" ok={isOcorrenciasZeradas} />
                   <CheckItem label="Visto da Secretaria" ok={isVistoSecretaria} />
