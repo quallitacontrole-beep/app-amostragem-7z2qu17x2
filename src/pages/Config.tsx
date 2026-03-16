@@ -5,9 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useState, useMemo } from 'react'
-import { Plus, X, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { Plus, X, ChevronLeft, ChevronRight, Search, Lock } from 'lucide-react'
 import { UserManagement } from '@/components/UserManagement'
-import { removeAccents } from '@/lib/utils'
+import { removeAccents, cn } from '@/lib/utils'
 
 function ConfigList({
   title,
@@ -17,6 +17,7 @@ function ConfigList({
   onRemove,
   placeholder = 'Novo item...',
   searchable = false,
+  lockedItems = [],
 }: {
   title: string
   description: string
@@ -25,6 +26,7 @@ function ConfigList({
   onRemove: (v: string) => void
   placeholder?: string
   searchable?: boolean
+  lockedItems?: string[]
 }) {
   const [newVal, setNewVal] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -91,21 +93,32 @@ function ConfigList({
         )}
 
         <div className="flex flex-wrap gap-2 mt-4 overflow-y-auto flex-1 content-start pb-2 pr-2">
-          {paginatedItems.map((item) => (
-            <Badge
-              key={item}
-              variant="secondary"
-              className="px-3 py-1 text-sm flex items-center gap-1"
-            >
-              {item}
-              <button
-                onClick={() => onRemove(item)}
-                className="text-muted-foreground hover:text-destructive ml-1"
+          {paginatedItems.map((item) => {
+            const isLocked = lockedItems.includes(item)
+            return (
+              <Badge
+                key={item}
+                variant="secondary"
+                className={cn(
+                  'px-3 py-1 text-sm flex items-center gap-1',
+                  isLocked && 'opacity-80 pr-2 pointer-events-none',
+                )}
               >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
+                {item}
+                {isLocked ? (
+                  <Lock className="h-3 w-3 text-muted-foreground/70 ml-1" />
+                ) : (
+                  <button
+                    onClick={() => onRemove(item)}
+                    className="text-muted-foreground hover:text-destructive ml-1 transition-colors"
+                    title="Remover item"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </Badge>
+            )
+          })}
           {paginatedItems.length === 0 && (
             <p className="text-sm text-muted-foreground w-full text-center py-4">
               Nenhum item encontrado.
@@ -231,6 +244,7 @@ export default function Config() {
                 items={configuracoes.setores || []}
                 onAdd={(v) => addToList('setores', v)}
                 onRemove={(v) => removeFromList('setores', v)}
+                lockedItems={['Secretaria', 'Amostragem']}
               />
 
               <ConfigList

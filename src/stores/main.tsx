@@ -196,7 +196,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return mockFichas
   })
 
-  const [configuracoes, setConfiguracoes] = useState<Configuracoes>(defaultConfig)
+  const [configuracoes, setConfiguracoes] = useState<Configuracoes>(() => {
+    try {
+      const stored = localStorage.getItem('app_config')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        let parsedSetores = parsed.setores || defaultConfig.setores
+        if (!parsedSetores.includes('Secretaria')) parsedSetores.unshift('Secretaria')
+        if (!parsedSetores.includes('Amostragem')) parsedSetores.unshift('Amostragem')
+        parsed.setores = parsedSetores
+        return { ...defaultConfig, ...parsed }
+      }
+    } catch (e) {
+      console.warn('Failed to load config from storage', e)
+    }
+    return defaultConfig
+  })
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     try {
@@ -236,12 +251,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('app_notifications', JSON.stringify(notifications))
   }, [notifications])
 
+  useEffect(() => {
+    localStorage.setItem('app_config', JSON.stringify(configuracoes))
+  }, [configuracoes])
+
   const addFicha = (ficha: Ficha) => setFichas((prev) => [ficha, ...prev])
 
   const updateFicha = (ficha: Ficha) =>
     setFichas((prev) => prev.map((f) => (f.id === ficha.id ? ficha : f)))
 
-  const updateConfiguracoes = (config: Configuracoes) => setConfiguracoes(config)
+  const updateConfiguracoes = (config: Configuracoes) => {
+    const setores = [...(config.setores || [])]
+    if (!setores.includes('Secretaria')) setores.unshift('Secretaria')
+    if (!setores.includes('Amostragem')) setores.unshift('Amostragem')
+    setConfiguracoes({ ...config, setores })
+  }
 
   const addAuditLog = (log: Omit<AuditLog, 'id' | 'timestamp'>) => {
     const newLog: AuditLog = {
@@ -270,6 +294,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const fetchConfig = async () => {
+      if (localStorage.getItem('app_config')) return
+
       try {
         const response = await fetch('https://api.goskip.dev/v1/projects/config/public')
         if (response.ok) {
@@ -285,6 +311,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             safeConfig.embalagens = safeConfig.embalagens || defaultConfig.embalagens
             safeConfig.unidadesQtd = safeConfig.unidadesQtd || defaultConfig.unidadesQtd
             safeConfig.unidadesDosagem = safeConfig.unidadesDosagem || defaultConfig.unidadesDosagem
+
+            if (!safeConfig.setores?.includes('Secretaria'))
+              safeConfig.setores?.unshift('Secretaria')
+            if (!safeConfig.setores?.includes('Amostragem'))
+              safeConfig.setores?.unshift('Amostragem')
 
             setConfiguracoes(safeConfig)
           }
