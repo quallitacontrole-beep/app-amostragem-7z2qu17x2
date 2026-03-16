@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -7,17 +7,32 @@ import { useAuthStore } from '@/stores/auth'
 import { DashboardStats } from '@/components/DashboardStats'
 import { RecentRecords } from '@/components/RecentRecords'
 import { DatePickerWithRange } from '@/components/DateRangePicker'
-import { subDays } from 'date-fns'
 
 export default function Index() {
   const navigate = useNavigate()
   const { fichas, configuracoes } = useAppStore()
   const { user } = useAuthStore()
 
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>({
-    from: subDays(new Date(), 30),
-    to: new Date(),
-  })
+  const defaultDateRange = useMemo(() => {
+    const today = new Date()
+    const start = new Date(today)
+    start.setDate(today.getDate() - 1) // Yesterday
+
+    // If yesterday is Sunday (0), go back to Friday (-2 days from Sunday)
+    if (start.getDay() === 0) {
+      start.setDate(start.getDate() - 2)
+    }
+    // If yesterday is Saturday (6), go back to Friday (-1 day from Saturday)
+    else if (start.getDay() === 6) {
+      start.setDate(start.getDate() - 1)
+    }
+
+    return { from: start, to: today }
+  }, [])
+
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(
+    defaultDateRange,
+  )
 
   const canAccessSecretariaFeatures =
     user?.sector === 'Secretaria' || user?.role === 'Administrador'
