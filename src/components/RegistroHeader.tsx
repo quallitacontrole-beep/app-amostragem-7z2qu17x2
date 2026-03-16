@@ -113,7 +113,7 @@ export function RegistroHeader({
         }
       }
       if (updatedItem.ordemServico) {
-        const match = updatedItem.ordemServico.match(/-(\d{1,2})$/)
+        const match = updatedItem.ordemServico.match(/-(\d{1,3})$/)
         if (match) {
           updatedItem.ordemServico = newCod ? `${newCod}-${match[1]}` : ''
         }
@@ -211,7 +211,7 @@ export function RegistroHeader({
 
         <div className="space-y-2 md:col-span-4">
           <Label className="flex justify-between">
-            Nome do cliente
+            Cliente
             <button
               type="button"
               onClick={simulateLookup}
@@ -225,7 +225,7 @@ export function RegistroHeader({
             </button>
           </Label>
           <Input
-            placeholder="Nome do cliente"
+            placeholder="Cliente"
             value={ficha.clienteNome}
             onChange={(e) => updateField('clienteNome', e.target.value)}
           />

@@ -24,8 +24,8 @@ const getProtocoloNumber = (pw?: string) => {
 
 const getOsNumber = (os?: string) => {
   if (!os) return ''
-  const match = os.match(/-(\d{1,2})$/)
-  return match ? match[1] : os.replace(/\D/g, '').slice(-2)
+  const match = os.match(/-(\d{1,3})$/)
+  return match ? match[1] : os.replace(/\D/g, '').slice(-3)
 }
 
 export function RegistroItens({
@@ -150,7 +150,7 @@ export function RegistroItens({
               </div>
 
               <div className="space-y-2 md:col-span-1">
-                <Label>Quantidade amostral</Label>
+                <Label>Qt amostral</Label>
                 <Input
                   value={item.quantidade}
                   onChange={(e) =>
@@ -161,8 +161,8 @@ export function RegistroItens({
                 />
               </div>
               <div className="space-y-2 md:col-span-1">
-                <Label className="truncate block" title="Unidade de medida da quantidade amostral">
-                  Unidade de medida da quantidade amostral
+                <Label className="truncate block" title="Unidade de medida da qt amostral">
+                  Unidade de medida da qt amostral
                 </Label>
                 <Select
                   value={item.unidade}
@@ -307,10 +307,10 @@ export function RegistroItens({
                               !getOsNumber(item.ordemServico) &&
                                 'border-yellow-500 bg-yellow-500/10 focus-visible:ring-yellow-500',
                             )}
-                            placeholder="00"
+                            placeholder="000"
                             value={getOsNumber(item.ordemServico)}
                             onChange={(e) => {
-                              const n = e.target.value.replace(/\D/g, '').slice(0, 2)
+                              const n = e.target.value.replace(/\D/g, '').slice(0, 3)
                               if (!n) {
                                 handleUpdateItem(item.id, 'ordemServico', '')
                               } else {
@@ -318,7 +318,7 @@ export function RegistroItens({
                               }
                             }}
                             disabled={!hasFullContract}
-                            maxLength={2}
+                            maxLength={3}
                           />
                         </div>
                       </TooltipTrigger>

@@ -133,7 +133,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
         }
       }
       if (updatedItem.ordemServico) {
-        const match = updatedItem.ordemServico.match(/-(\d{1,2})$/)
+        const match = updatedItem.ordemServico.match(/-(\d{1,3})$/)
         if (match) {
           updatedItem.ordemServico = newCod ? `${newCod}-${match[1]}` : ''
         }
@@ -390,7 +390,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                   >
                     {isOcorrenciasZeradas ? 'Ocorrências Resolvidas' : 'Pendências em Aberto'}
                   </Label>
-                  {localFicha.ocorrencias.map((occ) => (
+                  {localFicha.ocorrencias.map((occ, index) => (
                     <div
                       key={occ.id}
                       className={cn(
@@ -400,7 +400,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                     >
                       <div className="space-y-2">
                         <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                          Descrição Original
+                          Pendência {index + 1} - Descrição Original
                         </Label>
                         <div className="bg-muted/40 p-3 rounded border text-sm whitespace-pre-wrap text-foreground break-words">
                           {occ.descricao}

@@ -117,7 +117,7 @@ export default function Registro() {
 
     // Strict Base Validation (Always required for any save)
     if (!ficha.formaRecebimento) errors.push('Recebimento')
-    if (!ficha.clienteNome) errors.push('Nome do cliente')
+    if (!ficha.clienteNome) errors.push('Cliente')
     if (!ficha.cidadeUf) errors.push('Cidade')
 
     if (ficha.itens.length === 0) {
@@ -127,7 +127,7 @@ export default function Registro() {
         const itemPrefix = `Amostra ${index + 1}:`
 
         if (!item.tipo) errors.push(`${itemPrefix} Tipo de amostra`)
-        if (!item.quantidade) errors.push(`${itemPrefix} Quantidade amostral`)
+        if (!item.quantidade) errors.push(`${itemPrefix} Qt amostral`)
         if (!item.unidade) errors.push(`${itemPrefix} Unidade de medida`)
         if (!item.descricao) errors.push(`${itemPrefix} Descrição`)
         if (!item.embalagem) errors.push(`${itemPrefix} Embalagem`)
@@ -268,7 +268,7 @@ export default function Registro() {
 
   const handleOcorrenciaSubmit = () => {
     if (!ficha.clienteNome) {
-      toast.error('Preencha o Nome do cliente primeiro.')
+      toast.error('Preencha o Cliente primeiro.')
       return
     }
     if (!occText) {
@@ -408,7 +408,7 @@ export default function Registro() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Nome do cliente</Label>
+              <Label>Cliente</Label>
               <Input value={ficha.clienteNome} disabled className="bg-muted" />
             </div>
             <div className="space-y-2">
