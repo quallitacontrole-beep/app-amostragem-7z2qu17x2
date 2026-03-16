@@ -78,7 +78,7 @@ export function UserManagement() {
         email: u.email,
         pass: u.pass || '',
         role: u.role || 'Usuário',
-        sector: u.sector || '',
+        sector: configuracoes.setores?.includes(u.sector) ? u.sector : '',
       })
     } else {
       setEditingUser(null)
@@ -154,7 +154,9 @@ export function UserManagement() {
                       {u.role}
                     </Badge>
                   </TableCell>
-                  <TableCell>{u.sector || '-'}</TableCell>
+                  <TableCell>
+                    {configuracoes.setores?.includes(u.sector) ? u.sector : '-'}
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => handleOpenModal(u)}>
                       <Edit className="h-4 w-4" />
@@ -242,7 +244,7 @@ export function UserManagement() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Setor de usuários</Label>
+                  <Label>Setores da empresa</Label>
                   <Select
                     value={form.sector}
                     onValueChange={(v) => setForm({ ...form, sector: v })}
