@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2, Edit2, ShieldAlert, Save } from 'lucide-react'
 import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
@@ -173,6 +173,10 @@ export default function Config() {
   const { user } = useAuthStore()
   const [config, setConfig] = useState(configuracoes)
 
+  useEffect(() => {
+    setConfig(configuracoes)
+  }, [configuracoes])
+
   if (user?.role !== 'Administrador') {
     return (
       <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
@@ -183,8 +187,11 @@ export default function Config() {
     )
   }
 
-  const handleUpdateList = (key: keyof typeof config, newItems: string[]) =>
-    setConfig({ ...config, [key]: newItems })
+  const handleUpdateList = (key: keyof typeof config, newItems: string[]) => {
+    const updatedConfig = { ...config, [key]: newItems }
+    setConfig(updatedConfig)
+    updateConfiguracoes(updatedConfig)
+  }
 
   const handleSave = () => {
     updateConfiguracoes(config)
