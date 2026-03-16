@@ -309,15 +309,15 @@ export default function Index() {
             <p className="text-[10px] text-muted-foreground mt-1">Amostras em processo inicial</p>
           </CardContent>
         </Card>
-        <Card className="border-warning/20 bg-warning/5">
+        <Card className="border-[#FF0000]/20 bg-[#FF0000]/5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-warning-foreground truncate pr-2">
-              Aguardando Sec.
+            <CardTitle className="text-sm font-medium text-[#FF0000] truncate pr-2">
+              Aguardando Secretaria
             </CardTitle>
-            <AlertCircle className="h-4 w-4 text-warning-foreground shrink-0" />
+            <AlertCircle className="h-4 w-4 text-[#FF0000] shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning-foreground">{counts.secretaria}</div>
+            <div className="text-2xl font-bold text-[#FF0000]">{counts.secretaria}</div>
             <p className="text-[10px] text-muted-foreground mt-1">
               Esperando por resposta da Secretaria
             </p>
@@ -350,10 +350,10 @@ export default function Index() {
       </div>
 
       {user?.sector === 'Secretaria' && (
-        <Card className="border-warning/40 shadow-sm">
-          <CardHeader className="bg-warning/5 border-b border-warning/10 pb-4">
+        <Card className="border-[#FF0000]/40 shadow-sm">
+          <CardHeader className="bg-[#FF0000]/5 border-b border-[#FF0000]/10 pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-warning" />
+              <AlertCircle className="h-5 w-5 text-[#FF0000]" />
               Pendências da Secretaria
             </CardTitle>
           </CardHeader>

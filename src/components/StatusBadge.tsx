@@ -6,7 +6,7 @@ export function StatusBadge({ status, className }: { status: StatusFicha; classN
   const variants: Record<StatusFicha, string> = {
     Finalizada: 'bg-success/15 text-success hover:bg-success/25 border-success/20',
     'Aguardando Secretaria':
-      'bg-warning/15 text-warning-foreground hover:bg-warning/25 border-warning/20',
+      'bg-[#FF0000]/15 text-[#FF0000] hover:bg-[#FF0000]/25 border-[#FF0000]/20',
     'Aguardando Validação':
       'bg-purple-500/15 text-purple-600 hover:bg-purple-500/25 border-purple-500/20',
     'Validação Secretaria':

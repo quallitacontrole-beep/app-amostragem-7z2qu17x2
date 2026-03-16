@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Ficha, AmostraItem } from '@/types'
+import { Ficha, AmostraItem, StatusFicha } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/main'
 import {
@@ -55,12 +55,36 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
   const isSecretaria = user?.sector === 'Secretaria' || user?.role === 'Administrador'
 
+  const calculateStatusAfterItemsChange = (newItens: AmostraItem[], currentStatus: string) => {
+    let hasOSChanged = false
+    newItens.forEach((newItem) => {
+      const oldItem = ficha?.itens.find((i) => i.id === newItem.id)
+      if (
+        oldItem &&
+        oldItem.ordemServico &&
+        newItem.ordemServico &&
+        oldItem.ordemServico !== newItem.ordemServico
+      ) {
+        hasOSChanged = true
+      }
+    })
+    if (hasOSChanged) {
+      if (ficha?.status === 'Finalizada') {
+        return 'Validação Secretaria'
+      } else {
+        return 'Aguardando Secretaria'
+      }
+    }
+    return currentStatus
+  }
+
   const updateItem = (id: string, field: keyof AmostraItem, val: string) => {
-    setLocalFicha((prev) =>
-      prev
-        ? { ...prev, itens: prev.itens.map((it) => (it.id === id ? { ...it, [field]: val } : it)) }
-        : null,
-    )
+    setLocalFicha((prev) => {
+      if (!prev) return null
+      const newItens = prev.itens.map((it) => (it.id === id ? { ...it, [field]: val } : it))
+      const nextStatus = calculateStatusAfterItemsChange(newItens, prev.status)
+      return { ...prev, itens: newItens, status: nextStatus as StatusFicha }
+    })
   }
 
   const toggleOcc = (id: string, resolvida: boolean, resposta?: string) => {
@@ -116,7 +140,13 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       }
       return updatedItem
     })
-    setLocalFicha({ ...localFicha, codigoContrato: newCod, itens: newItens })
+    const nextStatus = calculateStatusAfterItemsChange(newItens, localFicha.status)
+    setLocalFicha({
+      ...localFicha,
+      codigoContrato: newCod,
+      itens: newItens,
+      status: nextStatus as StatusFicha,
+    })
   }
 
   const hasUnconfirmedTagChange = localFicha?.itens.some((it) => {
@@ -124,7 +154,8 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     const isChangedNow =
       oit && oit.ordemServico && it.ordemServico && oit.ordemServico !== it.ordemServico
     const wasChangedBefore = it.trocaEtiquetaSolicitada && !it.trocaEtiquetaConfirmada
-    return isChangedNow || wasChangedBefore
+    if (isChangedNow) return true
+    return wasChangedBefore
   })
 
   const needsTagConfirmation = hasUnconfirmedTagChange && !localTagConfirm
@@ -162,12 +193,15 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   const prepareFichaForSave = (targetStatus?: Ficha['status']) => {
     if (!ficha) return localFicha
 
+    let hasOSChanged = false
+
     const updatedItems = localFicha.itens.map((lit) => {
       const oit = ficha.itens.find((i) => i.id === lit.id)
       let isChangedNow = false
 
       if (oit && oit.ordemServico && lit.ordemServico && oit.ordemServico !== lit.ordemServico) {
         isChangedNow = true
+        hasOSChanged = true
         addNotification({
           userId: localFicha.responsavel,
           message: `Ordem de Troca de Etiqueta: A OS da amostra "${lit.descricao}" foi alterada de ${oit.ordemServico} para ${lit.ordemServico}.`,
@@ -181,15 +215,32 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       return {
         ...lit,
         trocaEtiquetaSolicitada: isChangedNow || wasRequested ? true : lit.trocaEtiquetaSolicitada,
-        trocaEtiquetaConfirmada: localTagConfirm ? true : lit.trocaEtiquetaConfirmada,
+        trocaEtiquetaConfirmada: isChangedNow
+          ? false
+          : localTagConfirm
+            ? true
+            : lit.trocaEtiquetaConfirmada,
         ordemServicoAnterior: isChangedNow ? oit?.ordemServico : lit.ordemServicoAnterior,
       }
     })
 
+    let finalStatus = targetStatus || localFicha.status
+    if (hasOSChanged && !targetStatus) {
+      if (ficha.status === 'Finalizada') {
+        finalStatus = 'Validação Secretaria'
+      } else {
+        finalStatus = 'Aguardando Secretaria'
+      }
+    }
+
+    if (canConcluir && targetStatus === 'Finalizada') {
+      finalStatus = 'Finalizada'
+    }
+
     return {
       ...localFicha,
       itens: updatedItems,
-      status: targetStatus || localFicha.status,
+      status: finalStatus,
     }
   }
 
@@ -462,10 +513,26 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
               value="edicao"
               className="m-0 p-4 sm:p-6 space-y-6 bg-muted/10 min-h-[50vh] outline-none"
             >
-              <RegistroHeader ficha={localFicha} setFicha={setLocalFicha} />
+              <RegistroHeader
+                ficha={localFicha}
+                setFicha={(updatedFicha) => {
+                  const nextStatus = calculateStatusAfterItemsChange(
+                    updatedFicha.itens,
+                    updatedFicha.status,
+                  )
+                  setLocalFicha({ ...updatedFicha, status: nextStatus as StatusFicha })
+                }}
+              />
               <RegistroItens
                 itens={localFicha.itens}
-                setItens={(newItens) => setLocalFicha({ ...localFicha, itens: newItens })}
+                setItens={(newItens) => {
+                  const nextStatus = calculateStatusAfterItemsChange(newItens, localFicha.status)
+                  setLocalFicha({
+                    ...localFicha,
+                    itens: newItens,
+                    status: nextStatus as StatusFicha,
+                  })
+                }}
                 codigoContrato={localFicha.codigoContrato}
               />
             </TabsContent>

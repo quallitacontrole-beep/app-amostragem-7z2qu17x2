@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
-import { Ficha, Configuracoes, AuditLog, AppNotification } from '@/types'
+import { Ficha, Configuracoes, AuditLog, AppNotification, StatusFicha } from '@/types'
 import { ALL_CITIES } from '@/lib/cidades'
 
 interface AppContextData {
@@ -127,6 +127,54 @@ const defaultConfig: Configuracoes = {
   cidadesEstados: ALL_CITIES,
 }
 
+export const evaluateFichaStatus = (f: any): any => {
+  let safeStatus = f.status === 'Concluída' || f.status === 'Resolvida' ? 'Finalizada' : f.status
+
+  if (safeStatus === 'Aguardando Validação') {
+    safeStatus = 'Validação Secretaria'
+  }
+
+  if (safeStatus === 'Finalizada' && f.vistoSecretaria === undefined) {
+    f.vistoSecretaria = true
+  }
+
+  const hasFullContract = Boolean(
+    f.codigoContrato &&
+    typeof f.codigoContrato === 'string' &&
+    f.codigoContrato.includes('/') &&
+    f.codigoContrato.split('/')[0] &&
+    f.codigoContrato.split('/')[1]?.length === 4,
+  )
+
+  const allOccsResolved = f.ocorrencias?.every((o: any) => o.resolvida) ?? true
+  const allItemsHaveValidOS =
+    f.itens?.length > 0 &&
+    f.itens.every(
+      (i: any) =>
+        i.ordemServico &&
+        i.ordemServico.trim() !== '' &&
+        typeof i.ordemServico === 'string' &&
+        i.ordemServico.includes('-'),
+    )
+
+  const needsTagConf = f.itens?.some(
+    (i: any) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
+  )
+
+  const isCompleto =
+    hasFullContract && allOccsResolved && allItemsHaveValidOS && f.vistoSecretaria && !needsTagConf
+
+  if (safeStatus === 'Finalizada') {
+    if (!isCompleto) {
+      safeStatus = 'Validação Secretaria'
+    }
+  } else if (safeStatus !== 'Finalizada' && !f.isDraft && isCompleto) {
+    safeStatus = 'Finalizada'
+  }
+
+  return { ...f, status: safeStatus }
+}
+
 const AppContext = createContext<AppContextData>({} as AppContextData)
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -136,64 +184,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (stored) {
         const parsed = JSON.parse(stored)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((f: any) => {
-            let safeStatus =
-              f.status === 'Concluída' || f.status === 'Resolvida' ? 'Finalizada' : f.status
-
-            if (safeStatus === 'Aguardando Validação') {
-              safeStatus = 'Validação Secretaria'
-            }
-
-            if (safeStatus === 'Finalizada' && f.vistoSecretaria === undefined) {
-              f.vistoSecretaria = true
-            }
-
-            const hasFullContract = Boolean(
-              f.codigoContrato &&
-              typeof f.codigoContrato === 'string' &&
-              f.codigoContrato.includes('/') &&
-              f.codigoContrato.split('/')[0] &&
-              f.codigoContrato.split('/')[1]?.length === 4,
-            )
-
-            const allOccsResolved = f.ocorrencias?.every((o: any) => o.resolvida) ?? true
-            const allItemsHaveValidOS =
-              f.itens?.length > 0 &&
-              f.itens.every(
-                (i: any) =>
-                  i.ordemServico &&
-                  i.ordemServico.trim() !== '' &&
-                  typeof i.ordemServico === 'string' &&
-                  i.ordemServico.includes('-'),
-              )
-
-            const needsTagConf = f.itens?.some(
-              (i: any) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
-            )
-
-            const isCompleto =
-              hasFullContract &&
-              allOccsResolved &&
-              allItemsHaveValidOS &&
-              f.vistoSecretaria &&
-              !needsTagConf
-
-            if (safeStatus === 'Finalizada') {
-              if (!isCompleto) {
-                safeStatus = 'Validação Secretaria'
-              }
-            } else if (safeStatus !== 'Finalizada' && !f.isDraft && isCompleto) {
-              safeStatus = 'Finalizada'
-            }
-
-            return { ...f, status: safeStatus }
-          })
+          return parsed.map((f: any) => evaluateFichaStatus(f))
         }
       }
     } catch (error) {
       console.warn('Failed to load fichas from storage', error)
     }
-    return mockFichas
+    return mockFichas.map((f) => evaluateFichaStatus(f))
   })
 
   const [configuracoes, setConfiguracoes] = useState<Configuracoes>(() => {
@@ -255,10 +252,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('app_config', JSON.stringify(configuracoes))
   }, [configuracoes])
 
-  const addFicha = (ficha: Ficha) => setFichas((prev) => [ficha, ...prev])
+  const addFicha = (ficha: Ficha) => setFichas((prev) => [evaluateFichaStatus(ficha), ...prev])
 
   const updateFicha = (ficha: Ficha) =>
-    setFichas((prev) => prev.map((f) => (f.id === ficha.id ? ficha : f)))
+    setFichas((prev) => prev.map((f) => (f.id === ficha.id ? evaluateFichaStatus(ficha) : f)))
 
   const updateConfiguracoes = (config: Configuracoes) => {
     const setores = [...(config.setores || [])]
