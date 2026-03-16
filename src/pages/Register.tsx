@@ -50,12 +50,15 @@ export default function Register() {
     if (password.length < 6) {
       return toast.error('A senha deve ter pelo menos 6 caracteres.')
     }
+    if (sector && !configuracoes.setores?.includes(sector)) {
+      return toast.error('O setor selecionado é inválido ou foi removido da lista.')
+    }
 
     if (authRegister(name, email, password, role, sector)) {
       toast.success('Conta criada com sucesso! Você foi autenticado automaticamente.')
       navigate('/')
     } else {
-      toast.error('Este email já está cadastrado.')
+      toast.error('Este usuário/login já está cadastrado.')
     }
   }
 
@@ -83,11 +86,11 @@ export default function Register() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Login / Usuário</Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="nome@exemplo.com"
+                type="text"
+                placeholder="Ex: joao.silva"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />

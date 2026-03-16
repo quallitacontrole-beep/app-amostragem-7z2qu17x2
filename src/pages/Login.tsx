@@ -43,7 +43,7 @@ export default function Login() {
 
       navigate(finalRedirect, { replace: true })
     } else {
-      toast.error('Email/Usuário ou senha inválidos. Tente novamente.')
+      toast.error('Usuário ou senha inválidos. Tente novamente.')
     }
   }
 
@@ -67,11 +67,11 @@ export default function Login() {
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email ou Usuário</Label>
+              <Label htmlFor="email">Login ou Usuário</Label>
               <Input
                 id="email"
                 type="text"
-                placeholder="nome@exemplo.com ou seu usuário"
+                placeholder="Ex: seu.usuario"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="username"

@@ -40,9 +40,14 @@ function ListManager({
   }
 
   const handleSaveEdit = (idx: number) => {
-    if (!editVal.trim()) return
+    const trimmed = editVal.trim()
+    if (!trimmed) return
+    if (items.some((i, index) => idx !== index && i.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error('Este item já existe na lista.')
+      return
+    }
     const newItems = [...items]
-    newItems[idx] = editVal.trim()
+    newItems[idx] = trimmed
     onChange(newItems)
     setEditIdx(null)
   }

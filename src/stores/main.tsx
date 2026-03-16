@@ -175,6 +175,13 @@ export const evaluateFichaStatus = (f: any): any => {
   return { ...f, status: safeStatus }
 }
 
+const sanitizeList = (arr: any): string[] => {
+  if (!Array.isArray(arr)) return []
+  return Array.from(
+    new Set(arr.filter((i) => i && typeof i === 'string' && i.trim() !== '').map((i) => i.trim())),
+  )
+}
+
 const AppContext = createContext<AppContextData>({} as AppContextData)
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -198,11 +205,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const stored = localStorage.getItem('app_config')
       if (stored) {
         const parsed = JSON.parse(stored)
-        let parsedSetores = parsed.setores || defaultConfig.setores
+        let parsedSetores = sanitizeList(parsed.setores || defaultConfig.setores)
         if (!parsedSetores.includes('Secretaria')) parsedSetores.unshift('Secretaria')
         if (!parsedSetores.includes('Amostragem')) parsedSetores.unshift('Amostragem')
-        parsed.setores = parsedSetores
-        return { ...defaultConfig, ...parsed }
+
+        return {
+          ...defaultConfig,
+          ...parsed,
+          setores: parsedSetores,
+          setoresAnalise: sanitizeList(parsed.setoresAnalise || defaultConfig.setoresAnalise),
+          formasRecebimento: sanitizeList(
+            parsed.formasRecebimento || defaultConfig.formasRecebimento,
+          ),
+          tiposAmostra: sanitizeList(parsed.tiposAmostra || defaultConfig.tiposAmostra),
+          embalagens: sanitizeList(parsed.embalagens || defaultConfig.embalagens),
+          unidadesQtd: sanitizeList(parsed.unidadesQtd || defaultConfig.unidadesQtd),
+          unidadesDosagem: sanitizeList(parsed.unidadesDosagem || defaultConfig.unidadesDosagem),
+        }
       }
     } catch (e) {
       console.warn('Failed to load config from storage', e)
@@ -258,10 +277,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setFichas((prev) => prev.map((f) => (f.id === ficha.id ? evaluateFichaStatus(ficha) : f)))
 
   const updateConfiguracoes = (config: Configuracoes) => {
-    const setores = [...(config.setores || [])]
+    const setores = sanitizeList(config.setores)
     if (!setores.includes('Secretaria')) setores.unshift('Secretaria')
     if (!setores.includes('Amostragem')) setores.unshift('Amostragem')
-    setConfiguracoes({ ...config, setores })
+
+    setConfiguracoes({
+      ...config,
+      setores,
+      setoresAnalise: sanitizeList(config.setoresAnalise),
+      formasRecebimento: sanitizeList(config.formasRecebimento),
+      tiposAmostra: sanitizeList(config.tiposAmostra),
+      embalagens: sanitizeList(config.embalagens),
+      unidadesQtd: sanitizeList(config.unidadesQtd),
+      unidadesDosagem: sanitizeList(config.unidadesDosagem),
+    })
   }
 
   const addAuditLog = (log: Omit<AuditLog, 'id' | 'timestamp'>) => {
@@ -304,15 +333,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }
 
             const safeConfig = { ...defaultConfig, ...remoteConfig }
-            safeConfig.setoresAnalise = safeConfig.setoresAnalise || defaultConfig.setoresAnalise
-            safeConfig.embalagens = safeConfig.embalagens || defaultConfig.embalagens
-            safeConfig.unidadesQtd = safeConfig.unidadesQtd || defaultConfig.unidadesQtd
-            safeConfig.unidadesDosagem = safeConfig.unidadesDosagem || defaultConfig.unidadesDosagem
 
-            if (!safeConfig.setores?.includes('Secretaria'))
-              safeConfig.setores?.unshift('Secretaria')
-            if (!safeConfig.setores?.includes('Amostragem'))
-              safeConfig.setores?.unshift('Amostragem')
+            safeConfig.setoresAnalise = sanitizeList(
+              safeConfig.setoresAnalise || defaultConfig.setoresAnalise,
+            )
+            safeConfig.embalagens = sanitizeList(safeConfig.embalagens || defaultConfig.embalagens)
+            safeConfig.unidadesQtd = sanitizeList(
+              safeConfig.unidadesQtd || defaultConfig.unidadesQtd,
+            )
+            safeConfig.unidadesDosagem = sanitizeList(
+              safeConfig.unidadesDosagem || defaultConfig.unidadesDosagem,
+            )
+            safeConfig.formasRecebimento = sanitizeList(
+              safeConfig.formasRecebimento || defaultConfig.formasRecebimento,
+            )
+            safeConfig.tiposAmostra = sanitizeList(
+              safeConfig.tiposAmostra || defaultConfig.tiposAmostra,
+            )
+
+            let fetchedSetores = sanitizeList(safeConfig.setores || defaultConfig.setores)
+            if (!fetchedSetores.includes('Secretaria')) fetchedSetores.unshift('Secretaria')
+            if (!fetchedSetores.includes('Amostragem')) fetchedSetores.unshift('Amostragem')
+
+            safeConfig.setores = fetchedSetores
 
             setConfiguracoes(safeConfig)
           }

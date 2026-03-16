@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = (email: string, pass: string) => {
     const users = JSON.parse(localStorage.getItem('app_users') || '[]')
-    const found = users.find((u: any) => u.email === email && u.pass === pass)
+    const found = users.find((u: any) => (u.email === email || u.name === email) && u.pass === pass)
     if (found) {
       setUser({
         id: found.id,
@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = (name: string, email: string, pass: string, role: Role, sector?: string) => {
     const users = JSON.parse(localStorage.getItem('app_users') || '[]')
     if (users.find((u: any) => u.email === email)) {
-      return false // Email already in use
+      return false // Email/Login already in use
     }
     const newUser = { id: Date.now().toString(), name, email, pass, role, sector }
     users.push(newUser)

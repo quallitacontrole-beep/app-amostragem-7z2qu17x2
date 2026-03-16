@@ -91,13 +91,19 @@ export function UserManagement() {
     if (!form.name || !form.email) return toast.error('Nome e login são obrigatórios.')
     if (!form.pass) return toast.error('Senha é obrigatória.')
 
+    if (form.sector && !configuracoes.setores?.includes(form.sector)) {
+      return toast.error(
+        'O setor selecionado é inválido ou não existe mais. Selecione um válido da lista.',
+      )
+    }
+
     if (editingUser) {
       if (updateUser(editingUser.id, form)) {
         toast.success('Usuário atualizado com sucesso.')
         setModalOpen(false)
         refreshUsers()
       } else {
-        toast.error('O Login (email) pode já estar em uso.')
+        toast.error('O Login pode já estar em uso.')
       }
     } else {
       if (createUser(form)) {
@@ -105,7 +111,7 @@ export function UserManagement() {
         setModalOpen(false)
         refreshUsers()
       } else {
-        toast.error('O Login (email) já está cadastrado.')
+        toast.error('O Login já está cadastrado.')
       }
     }
   }
@@ -178,7 +184,7 @@ export function UserManagement() {
             <DialogDescription>
               {editingUser
                 ? 'Atualize os dados do usuário abaixo.'
-                : 'Preencha os dados para criar um novo acesso.'}
+                : 'Preencha os dados para criar um novo acesso. Use um nome de usuário (ex: joao.silva) para facilitar o login.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -190,8 +196,10 @@ export function UserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Login (Email)</Label>
+              <Label>Login / Usuário</Label>
               <Input
+                type="text"
+                placeholder="Ex: angelita.brandao"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
