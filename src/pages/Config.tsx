@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { UserManagement } from '@/components/UserManagement'
 
 function ListManager({
   title,
@@ -217,7 +218,7 @@ export default function Config() {
         </Card>
 
         <Tabs defaultValue="amostras">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full h-auto">
+          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 w-full h-auto">
             <TabsTrigger value="amostras" className="py-2">
               Tipos de Amostra
             </TabsTrigger>
@@ -229,6 +230,9 @@ export default function Config() {
             </TabsTrigger>
             <TabsTrigger value="unidades" className="py-2">
               Unidades
+            </TabsTrigger>
+            <TabsTrigger value="usuarios" className="py-2">
+              Usuários
             </TabsTrigger>
           </TabsList>
 
@@ -287,6 +291,10 @@ export default function Config() {
               items={config.unidadesDosagem}
               onChange={(items) => handleUpdateList('unidadesDosagem', items)}
             />
+          </TabsContent>
+
+          <TabsContent value="usuarios" className="space-y-4 mt-4">
+            <UserManagement />
           </TabsContent>
         </Tabs>
       </div>
