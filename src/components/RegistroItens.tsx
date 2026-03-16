@@ -14,7 +14,7 @@ import { Trash2, Plus } from 'lucide-react'
 import { AmostraItem } from '@/types'
 import { useAppStore } from '@/stores/main'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { removeAccents } from '@/lib/utils'
+import { removeAccents, cn } from '@/lib/utils'
 
 const getProtocoloNumber = (pw?: string) => {
   if (!pw) return ''
@@ -131,7 +131,7 @@ export function RegistroItens({
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label>Tipo de Amostra</Label>
+                <Label>Tipo de amostra</Label>
                 <Select
                   value={item.tipo}
                   onValueChange={(v) => handleUpdateItem(item.id, 'tipo', v)}
@@ -149,37 +149,36 @@ export function RegistroItens({
                 </Select>
               </div>
 
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 md:col-span-1">
                 <Label>Quantidade amostral</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={item.quantidade}
-                    onChange={(e) =>
-                      handleUpdateItem(
-                        item.id,
-                        'quantidade',
-                        e.target.value.replace(/[^0-9.,]/g, ''),
-                      )
-                    }
-                    className="flex-1 text-center"
-                    placeholder="Qtd"
-                  />
-                  <Select
-                    value={item.unidade}
-                    onValueChange={(v) => handleUpdateItem(item.id, 'unidade', v)}
-                  >
-                    <SelectTrigger className="w-[110px] text-left">
-                      <SelectValue placeholder="Unid." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {configuracoes.unidadesQtd?.map((u) => (
-                        <SelectItem key={u} value={u}>
-                          {u}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Input
+                  value={item.quantidade}
+                  onChange={(e) =>
+                    handleUpdateItem(item.id, 'quantidade', e.target.value.replace(/[^0-9.,]/g, ''))
+                  }
+                  className="text-center"
+                  placeholder="Qtd"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-1">
+                <Label className="truncate block" title="Unidade de medida da quantidade amostral">
+                  Unidade de medida da quantidade amostral
+                </Label>
+                <Select
+                  value={item.unidade}
+                  onValueChange={(v) => handleUpdateItem(item.id, 'unidade', v)}
+                >
+                  <SelectTrigger className="w-full text-left">
+                    <SelectValue placeholder="Unid." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {configuracoes.unidadesQtd?.map((u) => (
+                      <SelectItem key={u} value={u}>
+                        {u}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2 md:col-span-4">
@@ -288,7 +287,7 @@ export function RegistroItens({
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label>Ordem de Serviço (OS)</Label>
+                <Label>Ordem de serviço (OS)</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     className="flex-1 bg-muted text-[13px] text-center px-1"
@@ -303,7 +302,11 @@ export function RegistroItens({
                       <TooltipTrigger asChild>
                         <div className="flex-1" tabIndex={0}>
                           <Input
-                            className="text-[13px] text-center"
+                            className={cn(
+                              'text-[13px] text-center',
+                              !getOsNumber(item.ordemServico) &&
+                                'border-yellow-500 bg-yellow-500/10 focus-visible:ring-yellow-500',
+                            )}
                             placeholder="00"
                             value={getOsNumber(item.ordemServico)}
                             onChange={(e) => {

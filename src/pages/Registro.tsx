@@ -112,87 +112,115 @@ export default function Registro() {
   }
 
   const validateForm = (isDraftSave: boolean) => {
+    const errors: string[] = []
+
+    if (!ficha.formaRecebimento) errors.push('Recebimento')
+    if (!ficha.clienteNome) errors.push('Nome do cliente')
+    if (!ficha.cidadeUf) errors.push('Cidade')
+
     if (ficha.itens.length === 0) {
-      toast.error('Adicione pelo menos um item.')
-      return false
+      errors.push('Adicione pelo menos um item da amostra.')
+    } else {
+      ficha.itens.forEach((item, index) => {
+        const itemPrefix = `Amostra ${index + 1}:`
+
+        if (!item.tipo) errors.push(`${itemPrefix} Tipo de amostra`)
+        if (!item.quantidade) errors.push(`${itemPrefix} Quantidade amostral`)
+        if (!item.unidade) errors.push(`${itemPrefix} Unidade de medida da quantidade amostral`)
+        if (!item.descricao) errors.push(`${itemPrefix} Descrição`)
+        if (!item.embalagem) errors.push(`${itemPrefix} Embalagem`)
+        if (!item.setorDestino) errors.push(`${itemPrefix} Setor de análise`)
+
+        if (item.protocoloWeb) {
+          const parts = item.protocoloWeb.split('-')
+          if (parts.length < 2 || !parts[1]) {
+            errors.push(`${itemPrefix} Protocolo Web incompleto (Código do contrato ausente)`)
+          }
+        }
+
+        if (!isDraftSave) {
+          const osParts = item.ordemServico?.split('-')
+          if (
+            !item.ordemServico ||
+            !osParts ||
+            osParts.length < 2 ||
+            !osParts[osParts.length - 1]
+          ) {
+            errors.push(`${itemPrefix} Ordem de serviço (OS)`)
+          }
+        } else if (item.ordemServico) {
+          const osParts = item.ordemServico.split('-')
+          if (osParts.length < 2 || !osParts[osParts.length - 1]) {
+            errors.push(`${itemPrefix} Ordem de serviço (OS) incompleta`)
+          }
+        }
+
+        const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
+        const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
+        const isFQ = setorNorm.includes('fisico-quimico')
+        const isProd = tipoNorm.includes('produto acabado')
+        const isMp = tipoNorm.includes('materia-prima diluida')
+
+        const requires1g = isFQ && (isProd || isMp)
+        if (requires1g && (!item.enviou1gExcipiente || !item.enviou1gAtivo)) {
+          errors.push(`${itemPrefix} Excipiente/Ativo (1g) obrigatório`)
+        }
+      })
     }
-    if (!ficha.clienteNome) {
-      toast.error('Nome do cliente é obrigatório.')
-      return false
+
+    if (!isDraftSave) {
+      if (!ficha.codigoContrato) {
+        errors.push('Código')
+      } else {
+        const parts = ficha.codigoContrato.split('/')
+        if (parts.length < 2 || !parts[0] || parts[1].length !== 4) {
+          errors.push('Código (inválido ou incompleto)')
+        }
+      }
+    } else if (ficha.codigoContrato) {
+      const parts = ficha.codigoContrato.split('/')
+      if (
+        parts.length < 2 ||
+        (!parts[0] && parts[1]) ||
+        (parts[0] && !parts[1]) ||
+        (parts[1] && parts[1].length !== 4)
+      ) {
+        errors.push('Código incompleto (prefixo ou ano)')
+      }
     }
+
     if (ficha.cpfCnpj) {
       const digits = ficha.cpfCnpj.replace(/\D/g, '')
       if (!isDraftSave && (digits.length < 11 || (digits.length > 11 && digits.length < 14))) {
-        toast.error('CPF/CNPJ incompleto.')
-        return false
+        errors.push('CPF/CNPJ incompleto')
       }
       if (digits.length === 11 && !isValidCpf(digits)) {
-        toast.error('CPF inválido.')
-        return false
+        errors.push('CPF inválido')
       }
       if (digits.length === 14 && !isValidCnpj(digits)) {
-        toast.error('CNPJ inválido.')
-        return false
+        errors.push('CNPJ inválido')
       }
     }
 
-    if (ficha.codigoContrato) {
-      const parts = ficha.codigoContrato.split('/')
-      const prefix = parts[0] || ''
-      const suffix = parts[1] || ''
-      if (prefix && !suffix) {
-        toast.error('O Código do Contrato está incompleto. Preencha o sufixo (ano).')
-        return false
-      }
-      if (!prefix && suffix) {
-        toast.error('O Código do Contrato está incompleto. Preencha o prefixo (número).')
-        return false
-      }
-      if (suffix && suffix.length !== 4) {
-        toast.error('O sufixo do Código do Contrato deve conter exatamente 4 dígitos.')
-        return false
-      }
-    }
-
-    if (!isDraftSave && !ficha.codigoContrato) {
-      toast.error('O Código do Contrato é obrigatório para enviar à Secretaria.')
+    if (errors.length > 0) {
+      toast.error('Não foi possível salvar o registro', {
+        description: (
+          <div className="mt-2 text-[13px] text-foreground/90">
+            <span className="font-semibold mb-1 block text-destructive">
+              Campos obrigatórios ausentes ou inválidos:
+            </span>
+            <ul className="list-disc pl-4 space-y-0.5">
+              {errors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          </div>
+        ),
+        duration: 8000,
+      })
       return false
     }
 
-    for (const item of ficha.itens) {
-      if (item.protocoloWeb) {
-        const parts = item.protocoloWeb.split('-')
-        if (parts.length < 2 || !parts[1]) {
-          toast.error(
-            'Protocolo Web incompleto. O Código do Contrato deve estar preenchido no cabeçalho.',
-          )
-          return false
-        }
-      }
-
-      if (item.ordemServico) {
-        const parts = item.ordemServico.split('-')
-        if (parts.length < 2 || !parts[parts.length - 1]) {
-          toast.error(
-            'Ordem de Serviço incompleta. O Código do Contrato deve estar preenchido no cabeçalho.',
-          )
-          return false
-        }
-      }
-
-      const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
-      const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
-      const isFQ = setorNorm.includes('fisico-quimico')
-      const isProd = tipoNorm.includes('produto acabado')
-      const isMp = tipoNorm.includes('materia-prima diluida')
-
-      const requires1g = isFQ && (isProd || isMp)
-
-      if (requires1g && (!item.enviou1gExcipiente || !item.enviou1gAtivo)) {
-        toast.error('Seleção de Excipiente e Ativo (1g) é obrigatória para os itens aplicáveis.')
-        return false
-      }
-    }
     return true
   }
 
@@ -249,7 +277,7 @@ export default function Registro() {
 
   const handleOcorrenciaSubmit = () => {
     if (!ficha.clienteNome) {
-      toast.error('Preencha o Nome do Cliente primeiro.')
+      toast.error('Preencha o Nome do cliente primeiro.')
       return
     }
     if (!occText) {
@@ -381,7 +409,7 @@ export default function Registro() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Nome do Cliente</Label>
+              <Label>Nome do cliente</Label>
               <Input value={ficha.clienteNome} disabled className="bg-muted" />
             </div>
             <div className="space-y-2">

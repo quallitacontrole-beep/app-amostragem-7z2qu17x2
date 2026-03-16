@@ -211,7 +211,7 @@ export function RegistroHeader({
 
         <div className="space-y-2 md:col-span-4">
           <Label className="flex justify-between">
-            Nome do Cliente
+            Nome do cliente
             <button
               type="button"
               onClick={simulateLookup}
@@ -225,7 +225,7 @@ export function RegistroHeader({
             </button>
           </Label>
           <Input
-            placeholder="Nome do Cliente"
+            placeholder="Nome do cliente"
             value={ficha.clienteNome}
             onChange={(e) => updateField('clienteNome', e.target.value)}
           />
@@ -247,7 +247,7 @@ export function RegistroHeader({
         </div>
 
         <div className="space-y-2 md:col-span-4">
-          <Label>Cidade-UF</Label>
+          <Label>Cidade</Label>
           <CityUfAutocomplete
             value={ficha.cidadeUf}
             onChange={(v) => updateField('cidadeUf', v)}
@@ -264,7 +264,10 @@ export function RegistroHeader({
               placeholder="0000"
               className={cn(
                 'w-16 text-center tracking-widest text-[13px]',
-                isCodPrefixInvalid && 'border-destructive focus-visible:ring-destructive',
+                isCodPrefixInvalid
+                  ? 'border-destructive focus-visible:ring-destructive'
+                  : !codPrefix &&
+                      'border-yellow-500 bg-yellow-500/10 focus-visible:ring-yellow-500',
               )}
               maxLength={4}
             />
@@ -275,7 +278,9 @@ export function RegistroHeader({
               placeholder="AAAA"
               className={cn(
                 'w-16 text-center tracking-widest text-[13px]',
-                isCodYearInvalid && 'border-destructive focus-visible:ring-destructive',
+                isCodYearInvalid
+                  ? 'border-destructive focus-visible:ring-destructive'
+                  : !codYear && 'border-yellow-500 bg-yellow-500/10 focus-visible:ring-yellow-500',
               )}
               maxLength={4}
             />
