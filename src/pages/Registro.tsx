@@ -8,6 +8,7 @@ import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
 import { RegistroHeader } from '@/components/RegistroHeader'
 import { RegistroItens } from '@/components/RegistroItens'
+import { StatusBadge } from '@/components/StatusBadge'
 import {
   Dialog,
   DialogContent,
@@ -63,6 +64,34 @@ export default function Registro() {
   useEffect(() => {
     if (existingFicha) setFicha(existingFicha)
   }, [existingFicha])
+
+  const isContratoValidado = Boolean(
+    ficha.codigoContrato?.includes('/') && ficha.codigoContrato.split('/')[1]?.length === 4,
+  )
+  const isOsVinculado =
+    ficha.itens.length > 0 && ficha.itens.every((it) => it.ordemServico?.includes('-'))
+  const isOcorrenciasZeradas = ficha.ocorrencias.every((o) => o.resolvida)
+  const needsTagConfirmation = ficha.itens.some(
+    (i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
+  )
+  const isVistoSecretaria = !!ficha.vistoSecretaria
+
+  const isAllComplete =
+    isContratoValidado &&
+    isOsVinculado &&
+    isOcorrenciasZeradas &&
+    isVistoSecretaria &&
+    !needsTagConfirmation
+
+  useEffect(() => {
+    if (!existingFicha || user?.sector !== 'Secretaria') return
+    if (isAllComplete && ficha.status !== 'Finalizada') {
+      setFicha((prev) => ({ ...prev, status: 'Finalizada' }))
+      toast.success('Checklist completo! Status alterado para Finalizada.')
+    } else if (!isAllComplete && ficha.status === 'Finalizada') {
+      setFicha((prev) => ({ ...prev, status: 'Validação Secretaria' }))
+    }
+  }, [isAllComplete, ficha.status, existingFicha, user?.sector])
 
   const canAccess =
     user?.role === 'Administrador' ||
@@ -178,7 +207,10 @@ export default function Registro() {
     }
 
     if (user?.sector === 'Secretaria' && ficha.status) {
-      status = (ficha.status as any) === 'Resolvida' ? 'Finalizada' : ficha.status
+      status = ficha.status === 'Resolvida' ? 'Finalizada' : ficha.status
+      if (!isAllComplete && status === 'Finalizada') {
+        status = 'Validação Secretaria'
+      }
     }
 
     const finalFicha = { ...ficha, status, isDraft: isDraftSave }
@@ -245,9 +277,12 @@ export default function Registro() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {id ? 'Editar Ficha' : 'Registro de Ficha'}
-        </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">
+            {id ? 'Editar Ficha' : 'Registro de Ficha'}
+          </h1>
+          {id && <StatusBadge status={ficha.status} className="w-fit" />}
+        </div>
         <p className="text-muted-foreground mt-1">Preencha os dados da amostra recebida.</p>
       </div>
 

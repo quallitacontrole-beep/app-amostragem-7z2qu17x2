@@ -29,6 +29,7 @@ import { CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RegistroHeader } from '@/components/RegistroHeader'
 import { RegistroItens } from '@/components/RegistroItens'
+import { StatusBadge } from '@/components/StatusBadge'
 
 interface Props {
   ficha: Ficha | null
@@ -51,8 +52,6 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       setLocalTagConfirm(false)
     }
   }, [ficha, isOpen])
-
-  if (!localFicha) return null
 
   const isSecretaria = user?.sector === 'Secretaria' || user?.role === 'Administrador'
 
@@ -100,6 +99,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   }
 
   const handleUpdateContrato = (newCod: string) => {
+    if (!localFicha) return
     const newItens = localFicha.itens.map((item) => {
       const updatedItem = { ...item }
       if (updatedItem.protocoloWeb) {
@@ -119,7 +119,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     setLocalFicha({ ...localFicha, codigoContrato: newCod, itens: newItens })
   }
 
-  const hasUnconfirmedTagChange = localFicha.itens.some((it) => {
+  const hasUnconfirmedTagChange = localFicha?.itens.some((it) => {
     const oit = ficha?.itens.find((i) => i.id === it.id)
     const isChangedNow =
       oit && oit.ordemServico && it.ordemServico && oit.ordemServico !== it.ordemServico
@@ -130,13 +130,15 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   const needsTagConfirmation = hasUnconfirmedTagChange && !localTagConfirm
 
   const isContratoValidado = Boolean(
-    localFicha.codigoContrato?.includes('/') &&
+    localFicha?.codigoContrato?.includes('/') &&
     localFicha.codigoContrato.split('/')[1]?.length === 4,
   )
   const isOsVinculado =
-    localFicha.itens.length > 0 && localFicha.itens.every((it) => it.ordemServico?.includes('-'))
-  const isOcorrenciasZeradas = localFicha.ocorrencias.every((o) => o.resolvida)
-  const isVistoSecretaria = !!localFicha.vistoSecretaria
+    localFicha && localFicha.itens.length > 0
+      ? localFicha.itens.every((it) => it.ordemServico?.includes('-'))
+      : false
+  const isOcorrenciasZeradas = localFicha?.ocorrencias.every((o) => o.resolvida) ?? true
+  const isVistoSecretaria = !!localFicha?.vistoSecretaria
 
   const canConcluir =
     isContratoValidado &&
@@ -144,6 +146,18 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     isOcorrenciasZeradas &&
     isVistoSecretaria &&
     !needsTagConfirmation
+
+  useEffect(() => {
+    if (!localFicha) return
+    if (canConcluir && localFicha.status !== 'Finalizada') {
+      setLocalFicha((prev) => (prev ? { ...prev, status: 'Finalizada' } : null))
+      toast.success('Checklist 100% concluído. A ficha agora está Finalizada.')
+    } else if (!canConcluir && localFicha.status === 'Finalizada') {
+      setLocalFicha((prev) => (prev ? { ...prev, status: 'Validação Secretaria' } : null))
+    }
+  }, [canConcluir, localFicha?.status])
+
+  if (!localFicha) return null
 
   const prepareFichaForSave = (targetStatus?: Ficha['status']) => {
     if (!ficha) return localFicha
@@ -208,7 +222,10 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       <DialogContent className="max-w-4xl w-[95vw] max-h-[90dvh] flex flex-col p-0 overflow-hidden gap-0 sm:rounded-lg bg-background">
         <div className="px-4 sm:px-6 py-4 border-b shrink-0 bg-background z-10">
           <DialogHeader>
-            <DialogTitle className="text-xl pr-8">Tratar Pendências - {localFicha.id}</DialogTitle>
+            <DialogTitle className="text-xl pr-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <span>Tratar Pendências - {localFicha.id}</span>
+              <StatusBadge status={localFicha.status} className="w-fit" />
+            </DialogTitle>
             <DialogDescription>Cliente: {localFicha.clienteNome}</DialogDescription>
           </DialogHeader>
         </div>
@@ -273,7 +290,12 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                 </div>
               )}
 
-              <div className="bg-card p-4 rounded-md border shadow-sm">
+              <div
+                className={cn(
+                  'p-4 rounded-md border shadow-sm transition-all duration-300',
+                  canConcluir ? 'bg-success/5 border-success/40' : 'bg-card',
+                )}
+              >
                 <Label className="text-base font-semibold block mb-4">Checklist de Validação</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <CheckItem label="Contrato Validado" ok={isContratoValidado} />
@@ -453,7 +475,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
         <div className="px-4 sm:px-6 py-4 border-t bg-muted/20 shrink-0 z-10">
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" className="w-full sm:w-auto" onClick={handleSaveParcial}>
-              Salvar Parcial
+              {canConcluir ? 'Salvar Alterações' : 'Salvar Parcial'}
             </Button>
             <Button
               onClick={handleFinalizar}

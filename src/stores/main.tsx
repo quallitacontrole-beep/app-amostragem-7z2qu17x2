@@ -167,15 +167,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                   i.ordemServico.includes('-'),
               )
 
+            const needsTagConf = f.itens?.some(
+              (i: any) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
+            )
+
+            const isCompleto =
+              hasFullContract &&
+              allOccsResolved &&
+              allItemsHaveValidOS &&
+              f.vistoSecretaria &&
+              !needsTagConf
+
             if (safeStatus === 'Finalizada') {
-              if (
-                !hasFullContract ||
-                !allOccsResolved ||
-                !allItemsHaveValidOS ||
-                !f.vistoSecretaria
-              ) {
+              if (!isCompleto) {
                 safeStatus = 'Validação Secretaria'
               }
+            } else if (safeStatus !== 'Finalizada' && !f.isDraft && isCompleto) {
+              safeStatus = 'Finalizada'
             }
 
             return { ...f, status: safeStatus }
