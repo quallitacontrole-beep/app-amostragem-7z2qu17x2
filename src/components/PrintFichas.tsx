@@ -1,26 +1,33 @@
 import { Ficha, Configuracoes } from '@/types'
 import { format } from 'date-fns'
+import { createPortal } from 'react-dom'
 
 export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Configuracoes }) {
   if (!fichas || fichas.length === 0) return null
 
-  return (
-    <div className="hidden print:block w-full bg-white text-black text-[13px] relative z-50">
+  const content = (
+    <div className="print-root hidden print:block w-full bg-white text-black text-[13px] m-0 p-0">
       <style type="text/css" media="print">
         {`
           @page { size: A4; margin: 15mm; }
           body { 
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact; 
-            background: white; 
-            margin: 0; 
-            padding: 0; 
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important; 
+            background: white !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+          }
+          body > #root {
+            display: none !important;
+          }
+          .print-root {
+            display: block !important;
           }
           .ficha-print-page { 
             break-after: page; 
             page-break-after: always; 
             position: relative; 
-            min-height: 92vh; 
+            min-height: 250mm;
             padding-bottom: 40px; 
           }
           .ficha-print-page:last-child { 
@@ -69,6 +76,9 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
             </div>
             <div>
               <span className="font-bold">Contrato:</span> {ficha.codigoContrato || '-'}
+            </div>
+            <div>
+              <span className="font-bold">Responsável:</span> {ficha.responsavel || '-'}
             </div>
             <div>
               <span className="font-bold">Recebimento:</span> {ficha.formaRecebimento || '-'}
@@ -154,6 +164,29 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
             )}
           </div>
 
+          {ficha.ocorrencias && ficha.ocorrencias.length > 0 && (
+            <div className="mt-4 break-inside-avoid">
+              <div className="mb-2 font-bold uppercase text-xs border-b border-black pb-1">
+                Ocorrências
+              </div>
+              <div className="space-y-2">
+                {ficha.ocorrencias.map((o) => (
+                  <div key={o.id} className="border border-gray-400 p-2 text-[11px] bg-gray-50">
+                    <div className="font-semibold text-black mb-1">Descrição: {o.descricao}</div>
+                    {o.respostaSecretaria && (
+                      <div className="text-black">
+                        <span className="font-semibold">Resposta:</span> {o.respostaSecretaria}
+                      </div>
+                    )}
+                    <div className="mt-1 text-gray-600">
+                      Status: {o.resolvida ? 'Resolvida' : 'Pendente'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="print-footer">
             <span>Impresso em: {format(new Date(), 'dd/MM/yyyy HH:mm')}</span>
             <span>pág. 1/1</span>
@@ -162,4 +195,6 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
       ))}
     </div>
   )
+
+  return createPortal(content, document.body)
 }
