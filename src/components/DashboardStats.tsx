@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Ficha } from '@/types'
 import { isWithinInterval, startOfDay, endOfDay } from 'date-fns'
-import { FileText, Send, AlertCircle, CheckCircle } from 'lucide-react'
+import { FileText, Send, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 
 export function DashboardStats({
   fichas,
@@ -23,17 +23,22 @@ export function DashboardStats({
   }, [fichas, dateRange])
 
   const total = filteredFichas.length
-  const finalizadas = filteredFichas.filter((f) => f.status === 'Finalizada').length
+  const finalizadas = filteredFichas.filter(
+    (f) => f.status === 'Finalizada' || f.status === 'Finalizada (Impressa)',
+  ).length
   const enviadoSecretaria = filteredFichas.filter(
     (f) => f.status === 'Validação Secretaria' || f.status === 'Aguardando Validação',
   ).length
   const aguardandoSecretaria = filteredFichas.filter(
     (f) => f.status === 'Aguardando Secretaria',
   ).length
+  const aguardandoAmostragem = filteredFichas.filter(
+    (f) => f.status === 'Aguardando Amostragem',
+  ).length
 
   return (
     <div className="space-y-4 print:hidden">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <Card className="bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-400">
@@ -45,6 +50,23 @@ export function DashboardStats({
             <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{total}</div>
             <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
               No período selecionado
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-400">
+              Aguardando Amostragem
+            </CardTitle>
+            <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+              {aguardandoAmostragem}
+            </div>
+            <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-1">
+              Secretaria aguardando finalização da amostragem
             </p>
           </CardContent>
         </Card>

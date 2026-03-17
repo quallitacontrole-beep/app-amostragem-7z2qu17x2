@@ -86,7 +86,11 @@ export default function Registro() {
 
   useEffect(() => {
     if (!existingFicha || user?.sector !== 'Secretaria') return
-    if (isAllComplete && ficha.status !== 'Finalizada') {
+    if (
+      isAllComplete &&
+      ficha.status !== 'Finalizada' &&
+      ficha.status !== 'Finalizada (Impressa)'
+    ) {
       setFicha((prev) => ({ ...prev, status: 'Finalizada' }))
       toast.success('Checklist completo! Status alterado para Finalizada.')
     } else if (!isAllComplete && ficha.status === 'Finalizada') {
@@ -141,7 +145,7 @@ export default function Registro() {
             osParts.length < 2 ||
             !osParts[osParts.length - 1]
           ) {
-            errors.push(`${itemPrefix} Ordem de serviço (OS) obrigatória para finalizar`)
+            errors.push(`${itemPrefix} Ordem de serviço (OS) obrigatória para enviar à secretaria`)
           }
         }
 
@@ -207,13 +211,40 @@ export default function Registro() {
   const saveFicha = (isIntermediateSave: boolean, ocorrencias?: Ocorrencia[]) => {
     const isExisting = !!id || fichas.some((f) => f.id === ficha.id)
     const action = isExisting ? 'Atualizou' : 'Criou'
+
+    const finalItens = ficha.itens.map((item) => {
+      const oldItem = existingFicha?.itens.find((i) => i.id === item.id)
+      const isChangedNow =
+        oldItem &&
+        oldItem.ordemServico &&
+        item.ordemServico &&
+        oldItem.ordemServico !== item.ordemServico
+      if (isChangedNow && !item.trocaEtiquetaConfirmada) {
+        return {
+          ...item,
+          trocaEtiquetaSolicitada: true,
+          ordemServicoAnterior: oldItem.ordemServico,
+        }
+      }
+      return item
+    })
+
     let status = ficha.status
+
+    const stillNeedsTagConf = finalItens.some(
+      (i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
+    )
+    if (stillNeedsTagConf && status !== 'Em Triagem') {
+      status = 'Aguardando Amostragem'
+    }
 
     if (isIntermediateSave) {
       if (
         status !== 'Finalizada' &&
+        status !== 'Finalizada (Impressa)' &&
         status !== 'Validação Secretaria' &&
         status !== 'Aguardando Secretaria' &&
+        status !== 'Aguardando Amostragem' &&
         status !== 'Respondida pela Secretaria'
       ) {
         status = 'Em Triagem'
@@ -221,7 +252,12 @@ export default function Registro() {
     } else if (ocorrencias && ocorrencias.length > 0) {
       status = 'Aguardando Secretaria'
     } else {
-      if (user?.sector === 'Amostragem' || user?.role === 'Administrador') {
+      if (
+        (user?.sector === 'Amostragem' || user?.role === 'Administrador') &&
+        !stillNeedsTagConf &&
+        status !== 'Finalizada' &&
+        status !== 'Finalizada (Impressa)'
+      ) {
         status = 'Validação Secretaria'
       }
     }
@@ -235,6 +271,7 @@ export default function Registro() {
 
     const finalFicha = {
       ...ficha,
+      itens: finalItens,
       status,
       isDraft: isIntermediateSave ? ficha.isDraft : false,
     }
@@ -289,19 +326,45 @@ export default function Registro() {
   }
 
   const handleConfirmarTroca = (itemId: string) => {
-    const newItens = ficha.itens.map((i) =>
-      i.id === itemId ? { ...i, trocaEtiquetaConfirmada: true } : i,
-    )
+    const newItens = ficha.itens.map((i) => {
+      if (i.id === itemId) {
+        const oldItem = existingFicha?.itens.find((old) => old.id === itemId)
+        return {
+          ...i,
+          trocaEtiquetaConfirmada: true,
+          trocaEtiquetaSolicitada: true,
+          ordemServicoAnterior: oldItem?.ordemServico || i.ordemServicoAnterior,
+        }
+      }
+      return i
+    })
     const updated = { ...ficha, itens: newItens }
     setFicha(updated)
     updateFicha(updated)
     toast.success('Confirmação de troca registrada com sucesso!')
   }
 
-  const hasResponses = ficha.ocorrencias.some((o) => o.respostaSecretaria)
-  const itemsNeedingTagChange = ficha.itens.filter(
-    (i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
-  )
+  const handlePrint = () => {
+    window.print()
+    if (ficha.status === 'Finalizada') {
+      const updated = { ...ficha, status: 'Finalizada (Impressa)' as StatusFicha }
+      setFicha(updated)
+      updateFicha(updated)
+    }
+  }
+
+  const hasResponses = ficha.ocorrencias.some((o) => o.respostaSecretaria && !o.resolvida)
+  const itemsNeedingTagChange = ficha.itens.filter((item) => {
+    const oldItem = existingFicha?.itens.find((i) => i.id === item.id)
+    const isChangedNow =
+      oldItem &&
+      oldItem.ordemServico &&
+      item.ordemServico &&
+      oldItem.ordemServico !== item.ordemServico
+    if (isChangedNow && !item.trocaEtiquetaConfirmada) return true
+    if (item.trocaEtiquetaSolicitada && !item.trocaEtiquetaConfirmada) return true
+    return false
+  })
 
   return (
     <>
@@ -323,24 +386,28 @@ export default function Registro() {
               Ação Necessária: Troca de Etiqueta
             </h3>
             <div className="space-y-2">
-              {itemsNeedingTagChange.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background p-3 rounded border border-warning/20 shadow-sm"
-                >
-                  <div className="text-[13px]">
-                    <span className="font-semibold text-foreground">{item.descricao}</span>
-                    <div className="text-muted-foreground mt-1">
-                      Ordem de Serviço alterada de{' '}
-                      <span className="line-through">{item.ordemServicoAnterior}</span> para{' '}
-                      <span className="font-bold text-foreground">{item.ordemServico}</span>
+              {itemsNeedingTagChange.map((item) => {
+                const oldItem = existingFicha?.itens.find((i) => i.id === item.id)
+                const previousOs = item.ordemServicoAnterior || oldItem?.ordemServico
+                return (
+                  <div
+                    key={item.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background p-3 rounded border border-warning/20 shadow-sm"
+                  >
+                    <div className="text-[13px]">
+                      <span className="font-semibold text-foreground">{item.descricao}</span>
+                      <div className="text-muted-foreground mt-1">
+                        Ordem de Serviço alterada de{' '}
+                        <span className="line-through">{previousOs}</span> para{' '}
+                        <span className="font-bold text-foreground">{item.ordemServico}</span>
+                      </div>
                     </div>
+                    <Button size="sm" onClick={() => handleConfirmarTroca(item.id)}>
+                      Confirmar Troca Fisicamente
+                    </Button>
                   </div>
-                  <Button size="sm" onClick={() => handleConfirmarTroca(item.id)}>
-                    Confirmar Troca Físicamente
-                  </Button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -353,7 +420,7 @@ export default function Registro() {
             </h3>
             <div className="space-y-2">
               {ficha.ocorrencias
-                .filter((o) => o.respostaSecretaria)
+                .filter((o) => o.respostaSecretaria && !o.resolvida)
                 .map((o) => (
                   <div
                     key={o.id}
@@ -381,12 +448,7 @@ export default function Registro() {
 
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem] print:hidden">
           {user?.sector === 'Secretaria' && id && (
-            <Button
-              variant="outline"
-              className="mr-auto"
-              onClick={() => window.print()}
-              type="button"
-            >
+            <Button variant="outline" className="mr-auto" onClick={handlePrint} type="button">
               <Printer className="mr-2 h-4 w-4" /> Imprimir Ficha
             </Button>
           )}
@@ -395,7 +457,7 @@ export default function Registro() {
               variant="destructive"
               className="mr-auto"
               onClick={() => setOccModalOpen(true)}
-              disabled={ficha.status === 'Finalizada'}
+              disabled={ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)'}
             >
               <AlertTriangle className="mr-2 h-4 w-4" /> Resolução Secretaria
             </Button>
@@ -407,7 +469,10 @@ export default function Registro() {
           )}
           <Button
             onClick={handleSubmit}
-            disabled={user?.sector !== 'Secretaria' && ficha.status === 'Finalizada'}
+            disabled={
+              user?.sector !== 'Secretaria' &&
+              (ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)')
+            }
           >
             {user?.sector === 'Secretaria' ? (
               <Save className="mr-2 h-4 w-4" />

@@ -2,9 +2,11 @@ export type StatusFicha =
   | 'Em Triagem'
   | 'Aguardando Secretaria'
   | 'Respondida pela Secretaria'
+  | 'Aguardando Amostragem'
   | 'Aguardando Validação'
   | 'Validação Secretaria'
   | 'Finalizada'
+  | 'Finalizada (Impressa)'
 
 export interface Ocorrencia {
   id: string

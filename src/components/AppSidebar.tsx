@@ -29,16 +29,16 @@ const navItems = [
     roles: ['Administrador', 'Amostrador', 'Amostragem', 'Secretaria', 'Usuário'],
   },
   {
+    title: 'Pendências',
+    url: '/pendencias',
+    icon: ListTodo,
+    roles: ['Administrador', 'Secretaria', 'Amostrador', 'Amostragem'],
+  },
+  {
     title: 'Nova Ficha',
     url: '/registro',
     icon: FilePlus2,
     roles: ['Administrador', 'Amostrador', 'Amostragem'],
-  },
-  {
-    title: 'Pendências',
-    url: '/pendencias',
-    icon: ListTodo,
-    roles: ['Administrador', 'Secretaria'],
   },
   {
     title: 'Relatórios',

@@ -24,12 +24,15 @@ export default function Pendencias() {
   const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null)
   const navigate = useNavigate()
 
-  if (user?.sector !== 'Secretaria' && user?.role !== 'Administrador') {
+  const isSecretaria = user?.sector === 'Secretaria' || user?.role === 'Administrador'
+  const isAmostragem = user?.sector === 'Amostragem' || user?.role === 'Amostrador'
+
+  if (!isSecretaria && !isAmostragem && user?.role !== 'Administrador') {
     return (
       <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[50vh]">
         <ShieldAlert className="h-10 w-10 text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-2">Acesso Restrito</h2>
-        <p>Apenas usuários com perfil de Secretaria podem acessar as pendências.</p>
+        <p>Apenas usuários com perfil de Secretaria ou Amostragem podem acessar as pendências.</p>
         <Button variant="outline" className="mt-6" onClick={() => navigate('/')}>
           Voltar ao Dashboard
         </Button>
@@ -37,12 +40,24 @@ export default function Pendencias() {
     )
   }
 
-  const pendentes = fichas.filter(
-    (f) =>
-      f.status === 'Aguardando Secretaria' ||
-      f.status === 'Validação Secretaria' ||
-      f.status === 'Aguardando Validação',
-  )
+  const pendentes = fichas.filter((f) => {
+    let isSecretariaRole = isSecretaria
+    let isAmostragemRole = isAmostragem || user?.role === 'Administrador'
+
+    const secStatus = [
+      'Aguardando Secretaria',
+      'Validação Secretaria',
+      'Aguardando Validação',
+    ].includes(f.status)
+    const amoStatus = f.status === 'Aguardando Amostragem'
+
+    if (isSecretariaRole && isAmostragemRole) {
+      return secStatus || amoStatus
+    }
+    if (isSecretariaRole) return secStatus
+    if (isAmostragemRole) return amoStatus
+    return false
+  })
 
   const filteredData = {
     ocorrencias: pendentes.filter((f) => f.ocorrencias.some((o) => !o.resolvida)),
@@ -114,7 +129,7 @@ export default function Pendencias() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Pendências</h1>
         <p className="text-muted-foreground mt-1">
-          Gerenciamento de fichas aguardando atuação da secretaria ou validação final.
+          Gerenciamento de fichas aguardando atuação e validações do time operacional.
         </p>
       </div>
 

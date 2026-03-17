@@ -5,8 +5,12 @@ import { cn } from '@/lib/utils'
 export function StatusBadge({ status, className }: { status: StatusFicha; className?: string }) {
   const variants: Record<StatusFicha, string> = {
     Finalizada: 'bg-success/15 text-success hover:bg-success/25 border-success/20',
+    'Finalizada (Impressa)':
+      'bg-gray-500/15 text-gray-700 hover:bg-gray-500/25 border-gray-500/20 dark:text-gray-300',
     'Aguardando Secretaria':
       'bg-[#FF0000]/15 text-[#FF0000] hover:bg-[#FF0000]/25 border-[#FF0000]/20',
+    'Aguardando Amostragem':
+      'bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 border-amber-500/20',
     'Aguardando Validação':
       'bg-purple-500/15 text-purple-600 hover:bg-purple-500/25 border-purple-500/20',
     'Validação Secretaria':

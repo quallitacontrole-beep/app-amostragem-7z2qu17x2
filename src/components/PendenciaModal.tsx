@@ -71,11 +71,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       }
     })
     if (hasOSChanged) {
-      if (ficha?.status === 'Finalizada') {
-        return 'Validação Secretaria'
-      } else {
-        return 'Aguardando Secretaria'
-      }
+      return 'Aguardando Amostragem'
     }
     return currentStatus
   }
@@ -94,7 +90,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       if (!prev) return null
       return {
         ...prev,
-        status: resolvida ? 'Respondida pela Secretaria' : prev.status,
+        status: resolvida ? 'Aguardando Amostragem' : prev.status,
         ocorrencias: prev.ocorrencias.map((o) => {
           if (o.id === id) {
             const updated = { ...o, resolvida }
@@ -182,7 +178,11 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
   useEffect(() => {
     if (!localFicha) return
-    if (canConcluir && localFicha.status !== 'Finalizada') {
+    if (
+      canConcluir &&
+      localFicha.status !== 'Finalizada' &&
+      localFicha.status !== 'Finalizada (Impressa)'
+    ) {
       setLocalFicha((prev) => (prev ? { ...prev, status: 'Finalizada' } : null))
       toast.success('Checklist 100% concluído. A ficha agora está Finalizada.')
     } else if (!canConcluir && localFicha.status === 'Finalizada') {
@@ -228,11 +228,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
     let finalStatus = targetStatus || localFicha.status
     if (hasOSChanged && !targetStatus) {
-      if (ficha.status === 'Finalizada') {
-        finalStatus = 'Validação Secretaria'
-      } else {
-        finalStatus = 'Aguardando Secretaria'
-      }
+      finalStatus = 'Aguardando Amostragem'
     }
 
     if (canConcluir && targetStatus === 'Finalizada') {
@@ -317,6 +313,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                   value={localFicha.codigoContrato || ''}
                   onChange={(e) => handleUpdateContrato(e.target.value)}
                   placeholder="Insira o contrato..."
+                  disabled={!isSecretaria}
                 />
               </div>
 
@@ -417,7 +414,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                       {occ.resolvida && occ.respostaSecretaria && (
                         <div className="space-y-2 mt-2">
                           <Label className="text-xs font-semibold text-success uppercase tracking-wider block">
-                            Sua Resposta
+                            Resposta
                           </Label>
                           <div className="bg-success/10 border-success/20 p-3 rounded border text-sm whitespace-pre-wrap text-foreground break-words">
                             {occ.respostaSecretaria}
@@ -425,7 +422,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                         </div>
                       )}
 
-                      {!occ.resolvida && (
+                      {!occ.resolvida && isSecretaria && (
                         <div className="space-y-2 mt-3">
                           <Label className="text-xs font-semibold text-primary uppercase tracking-wider block">
                             Resposta da Secretaria <span className="text-destructive">*</span>
@@ -445,26 +442,28 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                         </div>
                       )}
 
-                      <div className="flex flex-col sm:flex-row justify-end border-t pt-3 mt-2">
-                        {occ.resolvida ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full sm:w-auto"
-                            onClick={() => toggleOcc(occ.id, false)}
-                          >
-                            Reabrir Ocorrência
-                          </Button>
-                        ) : (
-                          <Button
-                            className="bg-success hover:bg-success/90 text-success-foreground font-semibold shadow-sm w-full sm:w-auto"
-                            size="sm"
-                            onClick={() => handleResolve(occ.id)}
-                          >
-                            Resolver ocorrência
-                          </Button>
-                        )}
-                      </div>
+                      {isSecretaria && (
+                        <div className="flex flex-col sm:flex-row justify-end border-t pt-3 mt-2">
+                          {occ.resolvida ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full sm:w-auto"
+                              onClick={() => toggleOcc(occ.id, false)}
+                            >
+                              Reabrir Ocorrência
+                            </Button>
+                          ) : (
+                            <Button
+                              className="bg-success hover:bg-success/90 text-success-foreground font-semibold shadow-sm w-full sm:w-auto"
+                              size="sm"
+                              onClick={() => handleResolve(occ.id)}
+                            >
+                              Resolver ocorrência
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -493,6 +492,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                               value={it.protocoloWeb || ''}
                               onChange={(e) => updateItem(it.id, 'protocoloWeb', e.target.value)}
                               placeholder="Opcional"
+                              disabled={!isSecretaria}
                             />
                           </TableCell>
                           <TableCell>
@@ -506,6 +506,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                               value={it.ordemServico || ''}
                               onChange={(e) => updateItem(it.id, 'ordemServico', e.target.value)}
                               placeholder="Obrigatório"
+                              disabled={!isSecretaria}
                             />
                           </TableCell>
                         </TableRow>
@@ -549,20 +550,22 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
         <div className="px-4 sm:px-6 py-4 border-t bg-muted/20 shrink-0 z-10">
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" className="w-full sm:w-auto" onClick={handleSaveParcial}>
-              {canConcluir ? 'Salvar Alterações' : 'Salvar Parcial'}
+              {canConcluir && isSecretaria ? 'Salvar Alterações' : 'Salvar Parcial'}
             </Button>
-            <Button
-              onClick={handleFinalizar}
-              disabled={!canConcluir}
-              className={cn(
-                'w-full sm:w-auto',
-                canConcluir
-                  ? 'bg-success hover:bg-success/90 text-success-foreground shadow-md'
-                  : '',
-              )}
-            >
-              Finalizar ficha
-            </Button>
+            {isSecretaria && (
+              <Button
+                onClick={handleFinalizar}
+                disabled={!canConcluir}
+                className={cn(
+                  'w-full sm:w-auto',
+                  canConcluir
+                    ? 'bg-success hover:bg-success/90 text-success-foreground shadow-md'
+                    : '',
+                )}
+              >
+                Finalizar ficha
+              </Button>
+            )}
           </DialogFooter>
         </div>
       </DialogContent>

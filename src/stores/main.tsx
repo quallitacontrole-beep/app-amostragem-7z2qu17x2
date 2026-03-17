@@ -133,6 +133,8 @@ export const evaluateFichaStatus = (f: any): any => {
     f.vistoSecretaria = true
   }
 
+  if (safeStatus === 'Finalizada (Impressa)') return f
+
   const hasFullContract = Boolean(
     f.codigoContrato &&
     typeof f.codigoContrato === 'string' &&
@@ -163,8 +165,23 @@ export const evaluateFichaStatus = (f: any): any => {
     if (!isCompleto) {
       safeStatus = 'Validação Secretaria'
     }
-  } else if (safeStatus !== 'Finalizada' && !f.isDraft && isCompleto) {
+  } else if (
+    safeStatus !== 'Finalizada' &&
+    safeStatus !== 'Aguardando Amostragem' &&
+    !f.isDraft &&
+    isCompleto
+  ) {
     safeStatus = 'Finalizada'
+  }
+
+  if (safeStatus === 'Aguardando Amostragem') {
+    if (allOccsResolved && !needsTagConf) {
+      safeStatus = 'Validação Secretaria'
+    }
+  }
+
+  if (!f.isDraft && needsTagConf && safeStatus !== 'Em Triagem') {
+    safeStatus = 'Aguardando Amostragem'
   }
 
   return { ...f, status: safeStatus }

@@ -5,6 +5,13 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -16,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { StatusBadge } from '@/components/StatusBadge'
 import { PrintFichas } from '@/components/PrintFichas'
 import { Ficha, Configuracoes } from '@/types'
+import { useAppStore } from '@/stores/main'
 import { format } from 'date-fns'
 
 interface RecentRecordsProps {
@@ -30,12 +38,15 @@ export function RecentRecords({
   canAccessSecretariaFeatures,
 }: RecentRecordsProps) {
   const navigate = useNavigate()
+  const { updateFicha } = useAppStore()
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('Todos')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const filteredFichas = useMemo(() => {
     const s = searchTerm.toLowerCase().trim()
     return fichas.filter((f) => {
+      if (statusFilter !== 'Todos' && f.status !== statusFilter) return false
       const dateStr = f.dataRecebimento ? format(new Date(f.dataRecebimento), 'dd/MM/yyyy') : ''
       return (
         f.id.toLowerCase().includes(s) ||
@@ -44,7 +55,7 @@ export function RecentRecords({
         dateStr.includes(s)
       )
     })
-  }, [fichas, searchTerm])
+  }, [fichas, searchTerm, statusFilter])
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) setSelectedIds(new Set(filteredFichas.map((f) => f.id)))
@@ -56,6 +67,18 @@ export function RecentRecords({
     if (checked) newSelected.add(id)
     else newSelected.delete(id)
     setSelectedIds(newSelected)
+  }
+
+  const handlePrint = () => {
+    window.print()
+    if (canAccessSecretariaFeatures) {
+      const toUpdate = fichas.filter((f) => selectedIds.has(f.id) && f.status === 'Finalizada')
+      if (toUpdate.length > 0) {
+        toUpdate.forEach((f) => {
+          updateFicha({ ...f, status: 'Finalizada (Impressa)' })
+        })
+      }
+    }
   }
 
   const isAllSelected = filteredFichas.length > 0 && selectedIds.size === filteredFichas.length
@@ -71,23 +94,37 @@ export function RecentRecords({
             <CardDescription>Acompanhe e filtre os recebimentos de amostras.</CardDescription>
           </div>
           {canAccessSecretariaFeatures && selectedIds.size > 0 && (
-            <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" /> Imprimir ({selectedIds.size})
             </Button>
           )}
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+            <div className="relative flex-1 w-full max-w-sm">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar por cliente, ID, data (dd/mm/aaaa) ou status..."
+                placeholder="Buscar por cliente, ID, data ou status..."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue placeholder="Filtrar por Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todos os Status</SelectItem>
+                <SelectItem value="Em Triagem">Em Triagem</SelectItem>
+                <SelectItem value="Aguardando Amostragem">Aguardando Amostragem</SelectItem>
+                <SelectItem value="Aguardando Secretaria">Aguardando Secretaria</SelectItem>
+                <SelectItem value="Validação Secretaria">Validação Secretaria</SelectItem>
+                <SelectItem value="Finalizada">Finalizada</SelectItem>
+                <SelectItem value="Finalizada (Impressa)">Finalizada (Impressa)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="border rounded-md bg-card overflow-hidden">
