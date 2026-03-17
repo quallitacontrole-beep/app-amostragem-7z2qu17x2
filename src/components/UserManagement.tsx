@@ -43,7 +43,7 @@ import {
 import { toast } from 'sonner'
 
 export function UserManagement({ setoresList }: { setoresList?: string[] }) {
-  const { user, getAllUsers, createUser, updateUser, deleteUser } = useAuthStore()
+  const { user, usersList, createUser, updateUser, deleteUser } = useAuthStore()
   const { configuracoes } = useAppStore()
   const isAdmin = user?.role === 'Administrador'
 
@@ -62,14 +62,9 @@ export function UserManagement({ setoresList }: { setoresList?: string[] }) {
   })
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
 
-  const refreshUsers = () => {
-    const all = getAllUsers()
-    setUsers(isAdmin ? all : all.filter((u: any) => u.id === user?.id))
-  }
-
   useEffect(() => {
-    refreshUsers()
-  }, [user, isAdmin])
+    setUsers(isAdmin ? usersList : usersList.filter((u: any) => u.id === user?.id))
+  }, [usersList, user, isAdmin])
 
   const handleOpenModal = (u?: any) => {
     setShowPassword(false)
@@ -103,7 +98,6 @@ export function UserManagement({ setoresList }: { setoresList?: string[] }) {
       if (updateUser(editingUser.id, form)) {
         toast.success('Usuário atualizado com sucesso.')
         setModalOpen(false)
-        refreshUsers()
       } else {
         toast.error('O Login pode já estar em uso.')
       }
@@ -111,7 +105,6 @@ export function UserManagement({ setoresList }: { setoresList?: string[] }) {
       if (createUser(form)) {
         toast.success('Usuário criado com sucesso.')
         setModalOpen(false)
-        refreshUsers()
       } else {
         toast.error('O Login já está cadastrado.')
       }
@@ -289,7 +282,6 @@ export function UserManagement({ setoresList }: { setoresList?: string[] }) {
                   deleteUser(userToDelete)
                   toast.success('Removido.')
                   setUserToDelete(null)
-                  refreshUsers()
                 }
               }}
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"

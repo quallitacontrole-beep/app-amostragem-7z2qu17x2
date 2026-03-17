@@ -18,6 +18,7 @@ interface UpdateProfileResult {
 
 interface AuthContextData {
   user: User | null
+  usersList: any[]
   isAuthenticated: boolean
   login: (email: string, pass: string) => boolean
   register: (name: string, email: string, pass: string, role: Role, sector?: string) => boolean
@@ -37,22 +38,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return stored ? JSON.parse(stored) : null
   })
 
-  useEffect(() => {
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
-    const hasAdmin = users.find((u: any) => u.email === 'andre.vale')
-
-    if (!hasAdmin) {
-      users.push({
-        id: 'admin-andre.vale',
-        name: 'andre.vale',
-        email: 'andre.vale',
-        pass: 'abc321',
-        role: 'Administrador',
-        sector: 'Diretoria',
-      })
-      localStorage.setItem('app_users', JSON.stringify(users))
+  const [usersList, setUsersList] = useState<any[]>(() => {
+    const adminDefault = {
+      id: 'admin-andre.vale',
+      name: 'andre.vale',
+      email: 'andre.vale',
+      pass: 'abc321',
+      role: 'Administrador',
+      sector: 'Diretoria',
     }
-  }, [])
+
+    try {
+      const stored = localStorage.getItem('app_users')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasAdmin = parsed.some((u: any) => u.email === 'andre.vale')
+          if (!hasAdmin) return [...parsed, adminDefault]
+          return parsed
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse app_users from storage', e)
+    }
+    return [adminDefault]
+  })
 
   useEffect(() => {
     if (user) {
@@ -62,9 +72,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user])
 
+  useEffect(() => {
+    localStorage.setItem('app_users', JSON.stringify(usersList))
+  }, [usersList])
+
   const login = (email: string, pass: string) => {
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
-    const found = users.find((u: any) => (u.email === email || u.name === email) && u.pass === pass)
+    const found = usersList.find(
+      (u: any) => (u.email === email || u.name === email) && u.pass === pass,
+    )
     if (found) {
       setUser({
         id: found.id,
@@ -79,13 +94,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const register = (name: string, email: string, pass: string, role: Role, sector?: string) => {
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
-    if (users.find((u: any) => u.email === email)) {
-      return false // Email/Login already in use
-    }
+    if (usersList.some((u: any) => u.email === email)) return false
     const newUser = { id: Date.now().toString(), name, email, pass, role, sector }
-    users.push(newUser)
-    localStorage.setItem('app_users', JSON.stringify(users))
+    setUsersList((prev) => [...prev, newUser])
     setUser({
       id: newUser.id,
       name: newUser.name,
@@ -98,77 +109,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateProfile = (name: string, oldPass: string, newPass: string): UpdateProfileResult => {
     if (!user) return { success: false, error: 'Usuário não autenticado.' }
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
-    const userIndex = users.findIndex((u: any) => u.id === user.id)
-
+    const userIndex = usersList.findIndex((u: any) => u.id === user.id)
     if (userIndex === -1) return { success: false, error: 'Usuário não encontrado na base.' }
 
+    const target = usersList[userIndex]
+    let updatedPass = target.pass
+
     if (newPass) {
-      if (users[userIndex].pass !== oldPass) {
-        return { success: false, error: 'Senha atual incorreta.' }
-      }
-      users[userIndex].pass = newPass
+      if (target.pass !== oldPass) return { success: false, error: 'Senha atual incorreta.' }
+      updatedPass = newPass
     }
 
-    users[userIndex].name = name
-    localStorage.setItem('app_users', JSON.stringify(users))
+    const updatedUsers = [...usersList]
+    updatedUsers[userIndex] = { ...target, name, pass: updatedPass }
+    setUsersList(updatedUsers)
     setUser({ ...user, name })
     return { success: true }
   }
 
-  const getAllUsers = () => {
-    return JSON.parse(localStorage.getItem('app_users') || '[]')
-  }
+  const getAllUsers = () => usersList
 
   const createUser = (data: any) => {
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
-    if (users.find((u: any) => u.email === data.email)) return false
-    const newUser = { id: Date.now().toString(), ...data }
-    users.push(newUser)
-    localStorage.setItem('app_users', JSON.stringify(users))
+    if (usersList.some((u: any) => u.email === data.email)) return false
+    setUsersList((prev) => [...prev, { id: Date.now().toString(), ...data }])
     return true
   }
 
   const updateUser = (id: string, data: any) => {
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]')
-    const index = users.findIndex((u: any) => u.id === id)
+    const index = usersList.findIndex((u: any) => u.id === id)
     if (index === -1) return false
-
-    if (data.email !== users[index].email && users.find((u: any) => u.email === data.email)) {
+    if (data.email !== usersList[index].email && usersList.some((u: any) => u.email === data.email))
       return false
-    }
 
-    users[index] = {
-      ...users[index],
+    const target = usersList[index]
+    const updatedUsers = [...usersList]
+
+    updatedUsers[index] = {
+      ...target,
       name: data.name,
       email: data.email,
-      role: data.role || users[index].role,
-      sector: data.sector !== undefined ? data.sector : users[index].sector,
+      role: data.role || target.role,
+      sector: data.sector !== undefined ? data.sector : target.sector,
+      pass: data.pass !== undefined ? data.pass : target.pass,
     }
 
-    if (data.pass !== undefined) {
-      users[index].pass = data.pass
-    }
-
-    localStorage.setItem('app_users', JSON.stringify(users))
+    setUsersList(updatedUsers)
 
     if (user?.id === id) {
       setUser({
-        id: users[index].id,
-        name: users[index].name,
-        email: users[index].email,
-        role: users[index].role,
-        sector: users[index].sector,
+        id: updatedUsers[index].id,
+        name: updatedUsers[index].name,
+        email: updatedUsers[index].email,
+        role: updatedUsers[index].role,
+        sector: updatedUsers[index].sector,
       })
     }
-
     return true
   }
 
   const deleteUser = (id: string) => {
-    let users = JSON.parse(localStorage.getItem('app_users') || '[]')
-    users = users.filter((u: any) => u.id !== id)
-    localStorage.setItem('app_users', JSON.stringify(users))
+    setUsersList((prev) => prev.filter((u: any) => u.id !== id))
     return true
   }
 
@@ -182,6 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     {
       value: {
         user,
+        usersList,
         isAuthenticated: !!user,
         login,
         register,
