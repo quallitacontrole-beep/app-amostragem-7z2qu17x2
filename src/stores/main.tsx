@@ -100,7 +100,7 @@ const defaultConfig: Configuracoes = {
     'Alimento',
   ],
   setores: ['Amostragem', 'Secretaria'],
-  setoresAnalise: ['Físico-Químico', 'Microbiologia', 'Estabilidade'],
+  setoresAnalise: ['Físico-Químico', 'Microbiologia', 'UDU'],
   embalagens: [
     'Frasco PET',
     'Saco estéril',
@@ -143,7 +143,7 @@ export const evaluateFichaStatus = (f: any): any => {
     f.codigoContrato.split('/')[1]?.length === 4,
   )
 
-  const allOccsResolved = f.ocorrencias?.every((o: any) => o.resolvida) ?? true
+  const allOccsResolved = f.ocorrencias?.every((o: any) => o.resolvida || o.isNonBlocking) ?? true
   const allItemsHaveValidOS =
     f.itens?.length > 0 &&
     f.itens.every(

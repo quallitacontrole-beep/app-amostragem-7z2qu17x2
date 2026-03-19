@@ -13,6 +13,10 @@ export interface Ocorrencia {
   descricao: string
   resolvida: boolean
   respostaSecretaria?: string
+  responsavelAmostragem?: string
+  responsavelSecretaria?: string
+  isNonBlocking?: boolean
+  historico?: { id: string; data: string; nota: string; usuario: string }[]
 }
 
 export interface AmostraItem {
@@ -23,7 +27,7 @@ export interface AmostraItem {
   quantidade: string
   unidade: string
   setorDestino: string
-  analiseSolicitada: string
+  analiseSolicitada?: string
   dosagem?: string
   unidadeDosagem?: string
   enviou1gExcipiente?: 'sim' | 'nao'
@@ -34,6 +38,7 @@ export interface AmostraItem {
   trocaEtiquetaSolicitada?: boolean
   trocaEtiquetaConfirmada?: boolean
   ordemServicoAnterior?: string
+  fotos?: string[]
 }
 
 export interface Ficha {
@@ -46,6 +51,7 @@ export interface Ficha {
   cpfCnpj: string
   cidadeUf: string
   codigoContrato: string
+  observacoes?: string
   itens: AmostraItem[]
   status: StatusFicha
   ocorrencias: Ocorrencia[]

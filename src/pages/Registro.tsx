@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Send, AlertTriangle, ShieldAlert, Tag, Printer } from 'lucide-react'
+import { Save, Send, AlertTriangle, ShieldAlert, Tag, Printer, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Ficha, Ocorrencia } from '@/types'
@@ -71,7 +71,7 @@ export default function Registro() {
   )
   const isOsVinculado =
     ficha.itens.length > 0 && ficha.itens.every((it) => it.ordemServico?.includes('-'))
-  const isOcorrenciasZeradas = ficha.ocorrencias.every((o) => o.resolvida)
+  const isOcorrenciasZeradas = ficha.ocorrencias.every((o) => o.resolvida || o.isNonBlocking)
   const needsTagConfirmation = ficha.itens.some(
     (i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
   )
@@ -151,11 +151,10 @@ export default function Registro() {
 
         const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
         const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
-        const isFQ = setorNorm.includes('fisico-quimico')
         const isProd = tipoNorm.includes('produto acabado')
-        const isMp = tipoNorm.includes('materia-prima diluida')
+        const isUDU = setorNorm === 'udu'
 
-        const requires1g = isFQ && (isProd || isMp)
+        const requires1g = isProd && isUDU
         if (requires1g && (!item.enviou1gExcipiente || !item.enviou1gAtivo)) {
           errors.push(`${itemPrefix} Excipiente/Ativo (1g) obrigatório`)
         }
@@ -229,6 +228,49 @@ export default function Registro() {
       return item
     })
 
+    const autoOccs: Ocorrencia[] = []
+
+    finalItens.forEach((item, index) => {
+      const isProd = removeAccents(item.tipo || '')
+        .toLowerCase()
+        .includes('produto acabado')
+      const isUDU = removeAccents(item.setorDestino || '').toLowerCase() === 'udu'
+
+      if (isProd && isUDU) {
+        if (item.enviou1gAtivo === 'nao' || item.enviou1gExcipiente === 'nao') {
+          const desc = `Amostra ${index + 1} (${item.descricao || 'Sem descrição'}): Falta 1g Ativo/Excipiente.`
+          const exists =
+            (ficha.ocorrencias || []).some((o) => o.descricao === desc) ||
+            autoOccs.some((o) => o.descricao === desc)
+          if (!exists) {
+            autoOccs.push({
+              id: `occ-auto-1g-${Date.now()}-${index}`,
+              descricao: desc,
+              resolvida: false,
+              isNonBlocking: true,
+              responsavelAmostragem: user?.name,
+            })
+          }
+        }
+      }
+
+      if (item.fotos && item.fotos.length > 0) {
+        const desc = `Amostra ${index + 1} (${item.descricao || 'Sem descrição'}): Fotos de Não Conformidade anexadas.`
+        const exists =
+          (ficha.ocorrencias || []).some((o) => o.descricao === desc) ||
+          autoOccs.some((o) => o.descricao === desc)
+        if (!exists) {
+          autoOccs.push({
+            id: `occ-auto-foto-${Date.now()}-${index}`,
+            descricao: desc,
+            resolvida: false,
+            isNonBlocking: true,
+            responsavelAmostragem: user?.name,
+          })
+        }
+      }
+    })
+
     let status = ficha.status
 
     const stillNeedsTagConf = finalItens.some(
@@ -237,6 +279,9 @@ export default function Registro() {
     if (stillNeedsTagConf && status !== 'Em Triagem') {
       status = 'Aguardando Amostragem'
     }
+
+    const hasNewAutoOccs = autoOccs.length > 0
+    const hasManualOccs = ocorrencias && ocorrencias.length > 0
 
     if (isIntermediateSave) {
       if (
@@ -249,7 +294,7 @@ export default function Registro() {
       ) {
         status = 'Em Triagem'
       }
-    } else if (ocorrencias && ocorrencias.length > 0) {
+    } else if (hasManualOccs || (hasNewAutoOccs && autoOccs.some((o) => !o.isNonBlocking))) {
       status = 'Aguardando Secretaria'
     } else {
       if (
@@ -269,14 +314,17 @@ export default function Registro() {
       }
     }
 
+    let mergedOccs = [...ficha.ocorrencias, ...autoOccs]
+    if (ocorrencias) {
+      mergedOccs = [...mergedOccs, ...ocorrencias]
+    }
+
     const finalFicha = {
       ...ficha,
       itens: finalItens,
       status,
+      ocorrencias: mergedOccs,
       isDraft: isIntermediateSave ? ficha.isDraft : false,
-    }
-    if (ocorrencias) {
-      finalFicha.ocorrencias = isExisting ? [...ficha.ocorrencias, ...ocorrencias] : ocorrencias
     }
 
     if (isExisting) {
@@ -284,6 +332,10 @@ export default function Registro() {
     } else {
       addFicha(finalFicha)
     }
+
+    // update local state so subsequent saves don't duplicate
+    setFicha(finalFicha)
+
     addAuditLog({ userId: user!.id, userName: user!.name, action, fichaId: ficha.id })
   }
 
@@ -318,7 +370,12 @@ export default function Registro() {
       toast.error('Descreva o caso.')
       return
     }
-    const newOcc: Ocorrencia = { id: `occ-${Date.now()}`, descricao: occText, resolvida: false }
+    const newOcc: Ocorrencia = {
+      id: `occ-${Date.now()}`,
+      descricao: occText,
+      resolvida: false,
+      responsavelAmostragem: user?.name,
+    }
     saveFicha(false, [newOcc])
     toast.success('Ocorrência gerada e ficha enviada para Secretaria.')
     setOccModalOpen(false)
@@ -353,6 +410,18 @@ export default function Registro() {
     }
   }
 
+  const handleClose = () => {
+    const currentStr = JSON.stringify(ficha)
+    const existingStr = existingFicha ? JSON.stringify(existingFicha) : null
+
+    if (!existingFicha || currentStr !== existingStr) {
+      if (!window.confirm('Existem alterações não salvas. Deseja realmente sair?')) {
+        return
+      }
+    }
+    navigate('/')
+  }
+
   const hasResponses = ficha.ocorrencias.some((o) => o.respostaSecretaria && !o.resolvida)
   const itemsNeedingTagChange = ficha.itens.filter((item) => {
     const oldItem = existingFicha?.itens.find((i) => i.id === item.id)
@@ -369,14 +438,25 @@ export default function Registro() {
   return (
     <>
       <div className="space-y-6 max-w-4xl mx-auto pb-24 animate-fade-in print:hidden">
-        <div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">
-              {id ? 'Editar Ficha' : 'Registro de Ficha'}
-            </h1>
-            {id && <StatusBadge status={ficha.status} className="w-fit" />}
+        <div className="flex justify-between items-start gap-4">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <h1 className="text-3xl font-bold tracking-tight">
+                {id ? 'Editar Ficha' : 'Registro de Ficha'}
+              </h1>
+              {id && <StatusBadge status={ficha.status} className="w-fit" />}
+            </div>
+            <p className="text-muted-foreground mt-1">Preencha os dados da amostra recebida.</p>
           </div>
-          <p className="text-muted-foreground mt-1">Preencha os dados da amostra recebida.</p>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleClose}
+            title="Fechar e voltar"
+            className="text-muted-foreground hover:text-foreground shrink-0 mt-1"
+          >
+            <X className="w-6 h-6" />
+          </Button>
         </div>
 
         {itemsNeedingTagChange.length > 0 && user?.sector !== 'Secretaria' && (
@@ -426,8 +506,15 @@ export default function Registro() {
                     key={o.id}
                     className="bg-background border rounded p-3 text-[13px] shadow-sm"
                   >
-                    <div className="font-semibold text-muted-foreground mb-1 uppercase tracking-wider text-[10px]">
-                      Pendência Original: {o.descricao}
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                        Pendência Original: {o.descricao}
+                      </div>
+                      {o.responsavelSecretaria && (
+                        <div className="text-[10px] text-muted-foreground">
+                          Resp: {o.responsavelSecretaria}
+                        </div>
+                      )}
                     </div>
                     <div className="text-foreground">
                       <span className="font-semibold text-primary">Resposta:</span>{' '}
@@ -495,6 +582,10 @@ export default function Registro() {
               <div className="space-y-2">
                 <Label>Cliente</Label>
                 <Input value={ficha.clienteNome} disabled className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label>Responsável Amostragem</Label>
+                <Input value={user?.name || ''} disabled className="bg-muted" />
               </div>
               <div className="space-y-2">
                 <Label>Descrição do Caso</Label>

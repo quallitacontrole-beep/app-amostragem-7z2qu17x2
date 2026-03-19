@@ -304,7 +304,7 @@ export default function Config() {
               description="Laboratórios de destino."
               items={config.setoresAnalise}
               onChange={(items) => handleUpdateList('setoresAnalise', items)}
-              lockedItems={['Físico-Químico', 'Microbiologia']}
+              lockedItems={['Físico-Químico', 'Microbiologia', 'UDU']}
             />
           </TabsContent>
 

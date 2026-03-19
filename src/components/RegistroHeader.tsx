@@ -159,12 +159,16 @@ export function RegistroHeader({
     updateContractCode(!codPrefix && !y ? '' : `${codPrefix}/${y}`)
   }
 
+  const titleParts = [
+    configuracoes.nomeFicha || 'Ficha de Recebimento de Amostras',
+    configuracoes.formularioPadrao,
+    configuracoes.revisaoFicha ? `Rev: ${configuracoes.revisaoFicha}` : '',
+  ].filter(Boolean)
+
   return (
     <Card className="animate-slide-down">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg">
-          {configuracoes.nomeFicha || 'Ficha de Recebimento de Amostras'}
-        </CardTitle>
+        <CardTitle className="text-lg text-primary">{titleParts.join(' - ')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-12">
         <div className="space-y-2 md:col-span-3">
@@ -295,6 +299,16 @@ export function RegistroHeader({
               O sufixo deve ter 4 dígitos
             </p>
           )}
+        </div>
+
+        <div className="space-y-2 md:col-span-12 mt-1">
+          <Label>Observações (máx 100 caracteres)</Label>
+          <Input
+            value={ficha.observacoes || ''}
+            onChange={(e) => updateField('observacoes', e.target.value.slice(0, 100))}
+            placeholder="Notas adicionais..."
+            maxLength={100}
+          />
         </div>
       </CardContent>
     </Card>

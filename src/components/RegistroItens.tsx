@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Trash2, Plus } from 'lucide-react'
+import { Trash2, Plus, Camera, X } from 'lucide-react'
 import { AmostraItem } from '@/types'
 import { useAppStore } from '@/stores/main'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -50,7 +50,6 @@ export function RegistroItens({
         quantidade: '',
         unidade: '',
         setorDestino: '',
-        analiseSolicitada: '',
       },
     ])
 
@@ -64,21 +63,36 @@ export function RegistroItens({
         const setorNorm = removeAccents(newItem.setorDestino || '').toLowerCase()
         const isProd = tipoNorm.includes('produto acabado')
         const isMp = tipoNorm.includes('materia-prima diluida')
+        const isUDU = setorNorm === 'udu'
         const isFQ = setorNorm.includes('fisico-quimico')
 
-        if (!(isProd && isFQ)) {
+        if (!(isProd && isUDU)) {
           delete newItem.dosagem
           delete newItem.unidadeDosagem
-        }
-        if (!(isMp && isFQ)) delete newItem.fatorDiluicao
-        if (!(isFQ && (isProd || isMp))) {
           delete newItem.enviou1gExcipiente
           delete newItem.enviou1gAtivo
         }
+        if (!(isMp && isFQ)) delete newItem.fatorDiluicao
 
         return newItem
       }),
     )
+  }
+
+  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const b64 = ev.target?.result as string
+        const item = itens.find((i) => i.id === id)
+        if (item) {
+          handleUpdateItem(id, 'fotos', [...(item.fotos || []), b64])
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+    e.target.value = ''
   }
 
   const hasFullContract = Boolean(
@@ -107,11 +121,12 @@ export function RegistroItens({
           const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
           const isProd = tipoNorm.includes('produto acabado')
           const isMp = tipoNorm.includes('materia-prima diluida')
+          const isUDU = setorNorm === 'udu'
           const isFQ = setorNorm.includes('fisico-quimico')
 
-          const showDosagem = isProd && isFQ
+          const showDosagem = isProd && isUDU
+          const show1g = isProd && isUDU
           const showFatorDiluicao = isMp && isFQ
-          const show1g = isFQ && (isProd || isMp)
 
           return (
             <div
@@ -162,7 +177,7 @@ export function RegistroItens({
               </div>
               <div className="space-y-2 md:col-span-1">
                 <Label className="truncate block" title="Unidade de medida da qt amostral">
-                  Unidade de medida da qt amostral
+                  Unidade de medida
                 </Label>
                 <Select
                   value={item.unidade}
@@ -225,14 +240,6 @@ export function RegistroItens({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label>Análise</Label>
-                <Input
-                  value={item.analiseSolicitada}
-                  onChange={(e) => handleUpdateItem(item.id, 'analiseSolicitada', e.target.value)}
-                />
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -418,6 +425,43 @@ export function RegistroItens({
                   </div>
                 </div>
               )}
+
+              <div className="space-y-2 md:col-span-4 pt-2 border-t">
+                <Label>Fotos de Não Conformidade ({item.fotos?.length || 0}/3)</Label>
+                <div className="flex gap-2 mt-1">
+                  {item.fotos?.map((foto, fIdx) => (
+                    <div key={fIdx} className="relative group">
+                      <img
+                        src={foto}
+                        className="w-16 h-16 object-cover rounded border border-border"
+                        alt="Não conformidade"
+                      />
+                      <button
+                        onClick={() => {
+                          const newFotos = item.fotos?.filter((_, i) => i !== fIdx)
+                          handleUpdateItem(item.id, 'fotos', newFotos)
+                        }}
+                        className="absolute -top-2 -right-2 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remover foto"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {(item.fotos?.length || 0) < 3 && (
+                    <Label className="w-16 h-16 flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/40 rounded cursor-pointer hover:bg-muted/50 transition-colors">
+                      <Camera className="w-6 h-6 text-muted-foreground/70" />
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => handlePhotoCapture(e, item.id)}
+                      />
+                    </Label>
+                  )}
+                </div>
+              </div>
             </div>
           )
         })}

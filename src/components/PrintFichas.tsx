@@ -83,6 +83,11 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
             <div>
               <span className="font-bold">Recebimento:</span> {ficha.formaRecebimento || '-'}
             </div>
+            {ficha.observacoes && (
+              <div className="col-span-2 mt-1 border-t border-gray-300 pt-1">
+                <span className="font-bold">Observações:</span> {ficha.observacoes}
+              </div>
+            )}
           </div>
 
           <div className="mb-2 font-bold uppercase text-xs border-b border-black pb-1">
@@ -115,10 +120,6 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
                     <div>
                       <span className="font-semibold">Setor Destino:</span>{' '}
                       {item.setorDestino || '-'}
-                    </div>
-                    <div className="col-span-2">
-                      <span className="font-semibold">Análise Solicitada:</span>{' '}
-                      {item.analiseSolicitada || '-'}
                     </div>
                     {item.ordemServico && (
                       <div>
@@ -173,9 +174,22 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
                 {ficha.ocorrencias.map((o) => (
                   <div key={o.id} className="border border-gray-400 p-2 text-[11px] bg-gray-50">
                     <div className="font-semibold text-black mb-1">Descrição: {o.descricao}</div>
+                    {o.historico && o.historico.length > 0 && (
+                      <div className="mb-1">
+                        <span className="font-semibold">Histórico:</span>
+                        <ul className="list-disc pl-4 mt-0.5">
+                          {o.historico.map((h) => (
+                            <li key={h.id}>
+                              {format(new Date(h.data), 'dd/MM')} - {h.nota}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     {o.respostaSecretaria && (
                       <div className="text-black">
-                        <span className="font-semibold">Resposta:</span> {o.respostaSecretaria}
+                        <span className="font-semibold">Resposta Final:</span>{' '}
+                        {o.respostaSecretaria}
                       </div>
                     )}
                     <div className="mt-1 text-gray-600">

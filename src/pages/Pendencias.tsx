@@ -51,6 +51,10 @@ export default function Pendencias() {
     ].includes(f.status)
     const amoStatus = f.status === 'Aguardando Amostragem'
 
+    const isCompleted = f.status === 'Finalizada' || f.status === 'Finalizada (Impressa)'
+
+    if (isCompleted) return false
+
     if (isSecretariaRole && isAmostragemRole) {
       return secStatus || amoStatus
     }
