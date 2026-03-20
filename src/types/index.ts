@@ -43,6 +43,7 @@ export interface AmostraItem {
 
 export interface Ficha {
   id: string
+  uuid?: string
   dataRecebimento: string
   createdAt?: string
   responsavel: string

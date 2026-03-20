@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react'
 import { Ficha, Configuracoes, AuditLog, AppNotification, StatusFicha } from '@/types'
 import { ALL_CITIES } from '@/lib/cidades'
+import { useFichasRecebimento } from '@/hooks/useFichasRecebimento'
 
 interface AppContextData {
   fichas: Ficha[]
@@ -9,72 +10,12 @@ interface AppContextData {
   notifications: AppNotification[]
   addFicha: (ficha: Ficha) => void
   updateFicha: (ficha: Ficha) => void
+  deleteFicha: (uuid: string, id: string) => void
   updateConfiguracoes: (config: Configuracoes) => void
   addAuditLog: (log: Omit<AuditLog, 'id' | 'timestamp'>) => void
   addNotification: (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => void
   markNotificationAsRead: (id: string) => void
 }
-
-const currentYear = new Date().getFullYear()
-
-const mockFichas: Ficha[] = [
-  {
-    id: `FR-${currentYear}-01`,
-    dataRecebimento: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    responsavel: 'João Amostrador',
-    formaRecebimento: 'Correios',
-    clienteNome: 'Farmácia Saúde Vital',
-    cpfCnpj: '45.997.418/0001-53',
-    cidadeUf: 'São Paulo-SP',
-    codigoContrato: '',
-    status: 'Validação Secretaria',
-    ocorrencias: [
-      { id: 'occ-1', descricao: 'Contrato Indefinido para o cliente.', resolvida: false },
-    ],
-    itens: [
-      {
-        id: 'it-1',
-        tipo: 'Produto Acabado Farmacêutico',
-        descricao: 'Paracetamol 500mg',
-        embalagem: 'Frasco PET',
-        quantidade: '10',
-        unidade: 'Unidade',
-        setorDestino: 'Físico-Químico',
-        analiseSolicitada: 'Teor',
-        dosagem: '500',
-        unidadeDosagem: 'mg',
-        enviou1gAtivo: 'sim',
-        enviou1gExcipiente: 'sim',
-      },
-    ],
-  },
-  {
-    id: `FR-${currentYear}-02`,
-    dataRecebimento: new Date(Date.now() - 86400000).toISOString(),
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    responsavel: 'Maria Amostradora',
-    formaRecebimento: 'Balcão',
-    clienteNome: 'Indústria BioMed',
-    cpfCnpj: '61.585.865/0001-51',
-    cidadeUf: 'Campinas-SP',
-    codigoContrato: `1234/${currentYear}`,
-    status: 'Em Triagem',
-    ocorrencias: [],
-    itens: [
-      {
-        id: 'it-2',
-        tipo: 'Matéria-prima',
-        descricao: 'Ácido Ascórbico Pote',
-        embalagem: 'Pote plástico',
-        quantidade: '2',
-        unidade: 'g',
-        setorDestino: 'Microbiologia',
-        analiseSolicitada: 'Contagem Total',
-      },
-    ],
-  },
-]
 
 const mockAuditLogs: AuditLog[] = [
   {
@@ -82,7 +23,7 @@ const mockAuditLogs: AuditLog[] = [
     userId: 'usr-sys',
     userName: 'Sistema',
     action: 'Criou',
-    fichaId: `FR-${currentYear}-01`,
+    fichaId: `FR-${new Date().getFullYear()}-01`,
     timestamp: new Date(Date.now() - 86400000).toISOString(),
   },
 ]
@@ -123,30 +64,35 @@ const defaultConfig: Configuracoes = {
 }
 
 export const evaluateFichaStatus = (f: any): any => {
-  let safeStatus = f.status === 'Concluída' || f.status === 'Resolvida' ? 'Finalizada' : f.status
+  const updatedF = { ...f }
+  let safeStatus =
+    updatedF.status === 'Concluída' || updatedF.status === 'Resolvida'
+      ? 'Finalizada'
+      : updatedF.status
 
   if (safeStatus === 'Aguardando Validação') {
     safeStatus = 'Validação Secretaria'
   }
 
-  if (safeStatus === 'Finalizada' && f.vistoSecretaria === undefined) {
-    f.vistoSecretaria = true
+  if (safeStatus === 'Finalizada' && updatedF.vistoSecretaria === undefined) {
+    updatedF.vistoSecretaria = true
   }
 
-  if (safeStatus === 'Finalizada (Impressa)') return f
+  if (safeStatus === 'Finalizada (Impressa)') return updatedF
 
   const hasFullContract = Boolean(
-    f.codigoContrato &&
-    typeof f.codigoContrato === 'string' &&
-    f.codigoContrato.includes('/') &&
-    f.codigoContrato.split('/')[0] &&
-    f.codigoContrato.split('/')[1]?.length === 4,
+    updatedF.codigoContrato &&
+    typeof updatedF.codigoContrato === 'string' &&
+    updatedF.codigoContrato.includes('/') &&
+    updatedF.codigoContrato.split('/')[0] &&
+    updatedF.codigoContrato.split('/')[1]?.length === 4,
   )
 
-  const allOccsResolved = f.ocorrencias?.every((o: any) => o.resolvida || o.isNonBlocking) ?? true
+  const allOccsResolved =
+    updatedF.ocorrencias?.every((o: any) => o.resolvida || o.isNonBlocking) ?? true
   const allItemsHaveValidOS =
-    f.itens?.length > 0 &&
-    f.itens.every(
+    updatedF.itens?.length > 0 &&
+    updatedF.itens.every(
       (i: any) =>
         i.ordemServico &&
         i.ordemServico.trim() !== '' &&
@@ -154,12 +100,16 @@ export const evaluateFichaStatus = (f: any): any => {
         i.ordemServico.includes('-'),
     )
 
-  const needsTagConf = f.itens?.some(
+  const needsTagConf = updatedF.itens?.some(
     (i: any) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
   )
 
   const isCompleto =
-    hasFullContract && allOccsResolved && allItemsHaveValidOS && f.vistoSecretaria && !needsTagConf
+    hasFullContract &&
+    allOccsResolved &&
+    allItemsHaveValidOS &&
+    updatedF.vistoSecretaria &&
+    !needsTagConf
 
   if (safeStatus === 'Finalizada') {
     if (!isCompleto) {
@@ -168,7 +118,7 @@ export const evaluateFichaStatus = (f: any): any => {
   } else if (
     safeStatus !== 'Finalizada' &&
     safeStatus !== 'Aguardando Amostragem' &&
-    !f.isDraft &&
+    !updatedF.isDraft &&
     isCompleto
   ) {
     safeStatus = 'Finalizada'
@@ -180,11 +130,11 @@ export const evaluateFichaStatus = (f: any): any => {
     }
   }
 
-  if (!f.isDraft && needsTagConf && safeStatus !== 'Em Triagem') {
+  if (!updatedF.isDraft && needsTagConf && safeStatus !== 'Em Triagem') {
     safeStatus = 'Aguardando Amostragem'
   }
 
-  return { ...f, status: safeStatus }
+  return { ...updatedF, status: safeStatus }
 }
 
 const sanitizeList = (arr: any): string[] => {
@@ -197,20 +147,16 @@ const sanitizeList = (arr: any): string[] => {
 const AppContext = createContext<AppContextData>({} as AppContextData)
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [fichas, setFichas] = useState<Ficha[]>(() => {
-    try {
-      const stored = localStorage.getItem('app_fichas')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((f: any) => evaluateFichaStatus(f))
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to load fichas from storage', error)
-    }
-    return mockFichas.map((f) => evaluateFichaStatus(f))
-  })
+  const {
+    fichas: rawFichas,
+    createFicha,
+    updateFicha: updateDbFicha,
+    deleteFicha: removeDbFicha,
+  } = useFichasRecebimento()
+
+  const fichas = useMemo(() => {
+    return rawFichas.map((f) => evaluateFichaStatus(f))
+  }, [rawFichas])
 
   const [configuracoes, setConfiguracoes] = useState<Configuracoes>(() => {
     try {
@@ -268,10 +214,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   })
 
   useEffect(() => {
-    localStorage.setItem('app_fichas', JSON.stringify(fichas))
-  }, [fichas])
-
-  useEffect(() => {
     localStorage.setItem('app_audit_logs', JSON.stringify(auditLogs))
   }, [auditLogs])
 
@@ -283,10 +225,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('app_config', JSON.stringify(configuracoes))
   }, [configuracoes])
 
-  const addFicha = (ficha: Ficha) => setFichas((prev) => [evaluateFichaStatus(ficha), ...prev])
-
-  const updateFicha = (ficha: Ficha) =>
-    setFichas((prev) => prev.map((f) => (f.id === ficha.id ? evaluateFichaStatus(ficha) : f)))
+  const addFicha = (ficha: Ficha) => createFicha(ficha)
+  const updateFicha = (ficha: Ficha) => updateDbFicha(ficha)
+  const deleteFicha = (uuid: string, id: string) => removeDbFicha(uuid, id)
 
   const updateConfiguracoes = (config: Configuracoes) => {
     const setores = sanitizeList(config.setores)
@@ -388,6 +329,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         notifications,
         addFicha,
         updateFicha,
+        deleteFicha,
         updateConfiguracoes,
         addAuditLog,
         addNotification,

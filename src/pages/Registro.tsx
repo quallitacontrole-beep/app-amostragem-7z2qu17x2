@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Send, AlertTriangle, ShieldAlert, Tag, Printer, X } from 'lucide-react'
+import { Save, Send, AlertTriangle, ShieldAlert, Tag, Printer, X, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Ficha, Ocorrencia } from '@/types'
@@ -26,7 +26,7 @@ import { isValidCpf, isValidCnpj, removeAccents } from '@/lib/utils'
 export default function Registro() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { fichas, addFicha, updateFicha, addAuditLog, configuracoes } = useAppStore()
+  const { fichas, addFicha, updateFicha, deleteFicha, addAuditLog, configuracoes } = useAppStore()
   const { user } = useAuthStore()
   const [isOccModalOpen, setOccModalOpen] = useState(false)
   const [occText, setOccText] = useState('')
@@ -333,7 +333,6 @@ export default function Registro() {
       addFicha(finalFicha)
     }
 
-    // update local state so subsequent saves don't duplicate
     setFicha(finalFicha)
 
     addAuditLog({ userId: user!.id, userName: user!.name, action, fichaId: ficha.id })
@@ -407,6 +406,20 @@ export default function Registro() {
       const updated = { ...ficha, status: 'Finalizada (Impressa)' as StatusFicha }
       setFicha(updated)
       updateFicha(updated)
+    }
+  }
+
+  const handleDelete = () => {
+    if (!ficha.uuid && !id) {
+      toast.error('Ficha não pode ser excluída.')
+      return
+    }
+    if (window.confirm(`Tem certeza que deseja excluir a ficha ${ficha.id}?`)) {
+      if (ficha.uuid) {
+        deleteFicha(ficha.uuid, ficha.id)
+      }
+      toast.success('Ficha excluída com sucesso.')
+      navigate('/')
     }
   }
 
@@ -534,21 +547,28 @@ export default function Registro() {
         />
 
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem] print:hidden">
-          {user?.sector === 'Secretaria' && id && (
-            <Button variant="outline" className="mr-auto" onClick={handlePrint} type="button">
-              <Printer className="mr-2 h-4 w-4" /> Imprimir Ficha
-            </Button>
-          )}
-          {user?.sector !== 'Secretaria' && (
-            <Button
-              variant="destructive"
-              className="mr-auto"
-              onClick={() => setOccModalOpen(true)}
-              disabled={ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)'}
-            >
-              <AlertTriangle className="mr-2 h-4 w-4" /> Resolução Secretaria
-            </Button>
-          )}
+          <div className="mr-auto flex flex-wrap gap-2">
+            {user?.sector === 'Secretaria' && id && (
+              <Button variant="outline" onClick={handlePrint} type="button">
+                <Printer className="mr-2 h-4 w-4" /> Imprimir
+              </Button>
+            )}
+            {user?.role === 'Administrador' && id && (
+              <Button variant="destructive" onClick={handleDelete} type="button">
+                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+              </Button>
+            )}
+            {user?.sector !== 'Secretaria' && (
+              <Button
+                variant="destructive"
+                onClick={() => setOccModalOpen(true)}
+                disabled={ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)'}
+              >
+                <AlertTriangle className="mr-2 h-4 w-4" /> Resolução
+              </Button>
+            )}
+          </div>
+
           {user?.sector !== 'Secretaria' && (
             <Button variant="outline" onClick={handleSaveDraft}>
               <Save className="mr-2 h-4 w-4" /> Salvar
