@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Save, Send, AlertTriangle, ShieldAlert, Tag, Printer, X, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { Ficha, Ocorrencia } from '@/types'
+import { Ficha, Ocorrencia, StatusFicha } from '@/types'
 import { useAppStore } from '@/stores/main'
 import { useAuthStore } from '@/stores/auth'
 import { RegistroHeader } from '@/components/RegistroHeader'
@@ -85,14 +85,16 @@ export default function Registro() {
     !needsTagConfirmation
 
   useEffect(() => {
-    if (!existingFicha || user?.sector !== 'Secretaria') return
+    if (!existingFicha) return
     if (
       isAllComplete &&
       ficha.status !== 'Finalizada' &&
       ficha.status !== 'Finalizada (Impressa)'
     ) {
       setFicha((prev) => ({ ...prev, status: 'Finalizada' }))
-      toast.success('Checklist completo! Status alterado para Finalizada.')
+      if (user?.sector === 'Secretaria') {
+        toast.success('Checklist completo! Status alterado para Finalizada.')
+      }
     } else if (!isAllComplete && ficha.status === 'Finalizada') {
       setFicha((prev) => ({ ...prev, status: 'Validação Secretaria' }))
     }
@@ -136,18 +138,6 @@ export default function Registro() {
         if (!item.descricao) errors.push(`${itemPrefix} Descrição`)
         if (!item.embalagem) errors.push(`${itemPrefix} Embalagem`)
         if (!item.setorDestino) errors.push(`${itemPrefix} Setor de análise`)
-
-        if (isFinalizing) {
-          const osParts = item.ordemServico?.split('-')
-          if (
-            !item.ordemServico ||
-            !osParts ||
-            osParts.length < 2 ||
-            !osParts[osParts.length - 1]
-          ) {
-            errors.push(`${itemPrefix} Ordem de serviço (OS) obrigatória para enviar à secretaria`)
-          }
-        }
       })
     }
 
@@ -203,16 +193,15 @@ export default function Registro() {
 
     const finalItens = ficha.itens.map((item) => {
       const oldItem = existingFicha?.itens.find((i) => i.id === item.id)
-      const isChangedNow =
-        oldItem &&
-        oldItem.ordemServico &&
-        item.ordemServico &&
-        oldItem.ordemServico !== item.ordemServico
+      const oldOs = oldItem?.ordemServico || ''
+      const newOs = item.ordemServico || ''
+      const isChangedNow = newOs && oldOs !== newOs
+
       if (isChangedNow && !item.trocaEtiquetaConfirmada) {
         return {
           ...item,
           trocaEtiquetaSolicitada: true,
-          ordemServicoAnterior: oldItem.ordemServico,
+          ordemServicoAnterior: oldOs,
         }
       }
       return item
@@ -388,10 +377,30 @@ export default function Registro() {
       }
       return i
     })
-    const updated = { ...ficha, itens: newItens }
+
+    const isNowComplete =
+      isContratoValidado &&
+      newItens.length > 0 &&
+      newItens.every((it) => it.ordemServico?.includes('-')) &&
+      isOcorrenciasZeradas &&
+      isVistoSecretaria &&
+      !newItens.some((i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada)
+
+    const updated = {
+      ...ficha,
+      itens: newItens,
+      status: isNowComplete ? 'Finalizada' : ficha.status,
+    } as Ficha
+
     setFicha(updated)
     updateFicha(updated)
-    toast.success('Confirmação de troca registrada com sucesso!')
+
+    if (isNowComplete) {
+      toast.success('Checklist 100% concluído! A ficha foi Finalizada automaticamente.')
+      navigate('/')
+    } else {
+      toast.success('Confirmação de troca registrada com sucesso!')
+    }
   }
 
   const handlePrint = () => {
@@ -432,11 +441,9 @@ export default function Registro() {
   const hasResponses = ficha.ocorrencias.some((o) => o.respostaSecretaria && !o.resolvida)
   const itemsNeedingTagChange = ficha.itens.filter((item) => {
     const oldItem = existingFicha?.itens.find((i) => i.id === item.id)
-    const isChangedNow =
-      oldItem &&
-      oldItem.ordemServico &&
-      item.ordemServico &&
-      oldItem.ordemServico !== item.ordemServico
+    const oldOs = oldItem?.ordemServico || ''
+    const newOs = item.ordemServico || ''
+    const isChangedNow = newOs && oldOs !== newOs
     if (isChangedNow && !item.trocaEtiquetaConfirmada) return true
     if (item.trocaEtiquetaSolicitada && !item.trocaEtiquetaConfirmada) return true
     return false
@@ -475,7 +482,7 @@ export default function Registro() {
             <div className="space-y-2">
               {itemsNeedingTagChange.map((item) => {
                 const oldItem = existingFicha?.itens.find((i) => i.id === item.id)
-                const previousOs = item.ordemServicoAnterior || oldItem?.ordemServico
+                const previousOs = item.ordemServicoAnterior || oldItem?.ordemServico || 'Nenhuma'
                 return (
                   <div
                     key={item.id}

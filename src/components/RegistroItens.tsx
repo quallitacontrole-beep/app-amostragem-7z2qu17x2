@@ -10,10 +10,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Trash2, Plus, Camera, X, Info } from 'lucide-react'
+import { Trash2, Plus, Camera, Upload, X, Info, Download, Image as ImageIcon } from 'lucide-react'
 import { AmostraItem } from '@/types'
 import { useAppStore } from '@/stores/main'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { removeAccents, cn } from '@/lib/utils'
 
 const getProtocoloNumber = (pw?: string) => {
@@ -304,7 +305,7 @@ export function RegistroItens({
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label>Ordem de serviço (OS)</Label>
+                <Label>Ordem de serviço (OS) (Opcional)</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     className="flex-1 bg-muted text-[13px] text-center px-1"
@@ -448,37 +449,82 @@ export function RegistroItens({
                     Gera pendência não-bloqueante
                   </span>
                 </Label>
-                <div className="flex gap-2 mt-1">
+                <div className="flex gap-2 mt-2 flex-wrap">
                   {item.fotos?.map((foto, fIdx) => (
-                    <div key={fIdx} className="relative group">
-                      <img
-                        src={foto}
-                        className="w-16 h-16 object-cover rounded border border-border"
-                        alt="Não conformidade"
-                      />
-                      <button
-                        onClick={() => {
-                          const newFotos = item.fotos?.filter((_, i) => i !== fIdx)
-                          handleUpdateItem(item.id, 'fotos', newFotos)
-                        }}
-                        className="absolute -top-2 -right-2 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Remover foto"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
+                    <Dialog key={fIdx}>
+                      <DialogTrigger asChild>
+                        <div className="relative group cursor-pointer border border-border rounded overflow-hidden">
+                          <img
+                            src={foto}
+                            className="w-20 h-20 object-cover transition-transform group-hover:scale-105"
+                            alt="Não conformidade"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <ImageIcon className="w-6 h-6 text-white" />
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const newFotos = item.fotos?.filter((_, i) => i !== fIdx)
+                              handleUpdateItem(item.id, 'fotos', newFotos)
+                            }}
+                            className="absolute -top-1 -right-1 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            title="Remover foto"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-3xl bg-transparent border-none shadow-none p-0 flex flex-col items-center justify-center">
+                        <img
+                          src={foto}
+                          className="max-w-full max-h-[80vh] object-contain rounded-md"
+                          alt="Evidência Ampliada"
+                        />
+                        <div className="flex justify-center mt-4">
+                          <Button asChild variant="secondary" className="gap-2">
+                            <a href={foto} download={`Evidencia_${item.id}_${fIdx + 1}.jpg`}>
+                              <Download className="w-4 h-4" /> Baixar Foto
+                            </a>
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   ))}
                   {(item.fotos?.length || 0) < 3 && (
-                    <Label className="w-16 h-16 flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/40 rounded cursor-pointer hover:bg-muted/50 transition-colors">
-                      <Camera className="w-6 h-6 text-muted-foreground/70" />
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={(e) => handlePhotoCapture(e, item.id)}
-                      />
-                    </Label>
+                    <div className="flex gap-2">
+                      <Label
+                        className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/40 rounded cursor-pointer hover:bg-muted/50 transition-colors bg-muted/10"
+                        title="Tirar Foto (Câmera)"
+                      >
+                        <Camera className="w-6 h-6 text-muted-foreground/70 mb-1" />
+                        <span className="text-[10px] font-medium text-muted-foreground">
+                          Câmera
+                        </span>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => handlePhotoCapture(e, item.id)}
+                        />
+                      </Label>
+                      <Label
+                        className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/40 rounded cursor-pointer hover:bg-muted/50 transition-colors bg-muted/10"
+                        title="Fazer Upload (Arquivo)"
+                      >
+                        <Upload className="w-6 h-6 text-muted-foreground/70 mb-1" />
+                        <span className="text-[10px] font-medium text-muted-foreground">
+                          Arquivo
+                        </span>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handlePhotoCapture(e, item.id)}
+                        />
+                      </Label>
+                    </div>
                   )}
                 </div>
               </div>

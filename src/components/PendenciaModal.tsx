@@ -64,12 +64,9 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     let hasOSChanged = false
     newItens.forEach((newItem) => {
       const oldItem = ficha?.itens.find((i) => i.id === newItem.id)
-      if (
-        oldItem &&
-        oldItem.ordemServico &&
-        newItem.ordemServico &&
-        oldItem.ordemServico !== newItem.ordemServico
-      ) {
+      const oldOs = oldItem?.ordemServico || ''
+      const newOs = newItem.ordemServico || ''
+      if (newOs && oldOs !== newOs) {
         hasOSChanged = true
       }
     })
@@ -187,8 +184,9 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
   const hasUnconfirmedTagChange = localFicha?.itens.some((it) => {
     const oit = ficha?.itens.find((i) => i.id === it.id)
-    const isChangedNow =
-      oit && oit.ordemServico && it.ordemServico && oit.ordemServico !== it.ordemServico
+    const oldOs = oit?.ordemServico || ''
+    const newOs = it.ordemServico || ''
+    const isChangedNow = newOs && oldOs !== newOs
     const wasChangedBefore = it.trocaEtiquetaSolicitada && !it.trocaEtiquetaConfirmada
     if (isChangedNow) return true
     return wasChangedBefore
@@ -205,7 +203,6 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       ? localFicha.itens.every((it) => it.ordemServico?.includes('-'))
       : false
 
-  // Non-blocking occurrences do not prevent finalizing
   const isOcorrenciasZeradas =
     localFicha?.ocorrencias.every((o) => o.resolvida || o.isNonBlocking) ?? true
 
@@ -226,7 +223,6 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       localFicha.status !== 'Finalizada (Impressa)'
     ) {
       setLocalFicha((prev) => (prev ? { ...prev, status: 'Finalizada' } : null))
-      // Only show success if it's currently open and we just flipped it
       if (isOpen) {
         toast.success('Checklist 100% concluído. A ficha agora está Finalizada.')
       }
@@ -246,12 +242,15 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       const oit = ficha.itens.find((i) => i.id === lit.id)
       let isChangedNow = false
 
-      if (oit && oit.ordemServico && lit.ordemServico && oit.ordemServico !== lit.ordemServico) {
+      const oldOs = oit?.ordemServico || ''
+      const newOs = lit.ordemServico || ''
+
+      if (newOs && oldOs !== newOs) {
         isChangedNow = true
         hasOSChanged = true
         addNotification({
           userId: localFicha.responsavel,
-          message: `Ordem de Troca de Etiqueta: A OS da amostra "${lit.descricao}" foi alterada de ${oit.ordemServico} para ${lit.ordemServico}.`,
+          message: `Ordem de Troca de Etiqueta: A OS da amostra "${lit.descricao}" foi alterada para ${lit.ordemServico}.`,
           fichaId: localFicha.id,
           type: 'tag_change',
         })
@@ -267,7 +266,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
           : localTagConfirm
             ? true
             : lit.trocaEtiquetaConfirmada,
-        ordemServicoAnterior: isChangedNow ? oit?.ordemServico : lit.ordemServicoAnterior,
+        ordemServicoAnterior: isChangedNow ? oldOs : lit.ordemServicoAnterior,
       }
     })
 
@@ -295,12 +294,14 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   }
 
   const handleSaveParcial = () => {
-    onSave(prepareFichaForSave() as Ficha)
+    const savedFicha = prepareFichaForSave() as Ficha
+    onSave(savedFicha)
+    setLocalFicha(JSON.parse(JSON.stringify(savedFicha)))
     if (activeTab === 'edicao') {
       setActiveTab('acoes')
       toast.info('Alterações salvas. Retornando para Ações e Ocorrências.')
     } else {
-      toast.info('Alterações salvas parcialmente.')
+      toast.success('Alterações salvas parcialmente.')
     }
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' })
@@ -321,7 +322,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       if (ficha && localFicha && JSON.stringify(ficha) !== JSON.stringify(localFicha)) {
-        if (!window.confirm('Existem alterações não salvas. Deseja realmente sair sem salvar?')) {
+        if (!window.confirm('Você possui alterações não salvas. Deseja realmente sair?')) {
           return
         }
       }
@@ -334,7 +335,23 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90dvh] flex flex-col p-0 overflow-hidden gap-0 sm:rounded-lg bg-background">
+      <DialogContent
+        className="max-w-4xl w-[95vw] max-h-[90dvh] flex flex-col p-0 overflow-hidden gap-0 sm:rounded-lg bg-background"
+        onInteractOutside={(e) => {
+          if (ficha && localFicha && JSON.stringify(ficha) !== JSON.stringify(localFicha)) {
+            if (!window.confirm('Você possui alterações não salvas. Deseja realmente sair?')) {
+              e.preventDefault()
+            }
+          }
+        }}
+        onEscapeKeyDown={(e) => {
+          if (ficha && localFicha && JSON.stringify(ficha) !== JSON.stringify(localFicha)) {
+            if (!window.confirm('Você possui alterações não salvas. Deseja realmente sair?')) {
+              e.preventDefault()
+            }
+          }
+        }}
+      >
         <div className="px-4 sm:px-6 py-4 border-b shrink-0 bg-background z-10">
           <DialogHeader>
             <DialogTitle className="text-xl pr-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -650,7 +667,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                               )}
                               value={it.ordemServico || ''}
                               onChange={(e) => updateItem(it.id, 'ordemServico', e.target.value)}
-                              placeholder="Obrigatório"
+                              placeholder="Inserir OS"
                               disabled={!isSecretaria}
                             />
                           </TableCell>
@@ -704,8 +721,15 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
           </Tabs>
         </div>
 
-        <div className="px-4 sm:px-6 py-4 border-t bg-muted/20 shrink-0 z-10">
-          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+        <div className="px-4 sm:px-6 py-4 border-t bg-muted/20 shrink-0 z-10 flex flex-col sm:flex-row justify-between items-center gap-2">
+          <Button
+            variant="ghost"
+            className="w-full sm:w-auto order-last sm:order-first"
+            onClick={() => handleOpenChange(false)}
+          >
+            Sair
+          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button variant="outline" className="w-full sm:w-auto" onClick={handleSaveParcial}>
               Salvar Parcial
             </Button>
@@ -723,7 +747,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                 Finalizar ficha
               </Button>
             )}
-          </DialogFooter>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

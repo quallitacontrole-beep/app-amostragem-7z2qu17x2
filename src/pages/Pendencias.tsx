@@ -71,6 +71,7 @@ export default function Pendencias() {
 
   const handleUpdateAndLog = (ficha: Ficha) => {
     updateFicha(ficha)
+    setSelectedFicha(ficha)
     if (user) {
       addAuditLog({ userId: user.id, userName: user.name, action: 'Atualizou', fichaId: ficha.id })
     }
