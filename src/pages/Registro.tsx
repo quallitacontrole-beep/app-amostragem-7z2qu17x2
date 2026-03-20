@@ -148,16 +148,6 @@ export default function Registro() {
             errors.push(`${itemPrefix} Ordem de serviço (OS) obrigatória para enviar à secretaria`)
           }
         }
-
-        const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
-        const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
-        const isProd = tipoNorm.includes('produto acabado')
-        const isUDU = setorNorm === 'udu'
-
-        const requires1g = isProd && isUDU
-        if (requires1g && (!item.enviou1gExcipiente || !item.enviou1gAtivo)) {
-          errors.push(`${itemPrefix} Excipiente/Ativo (1g) obrigatório`)
-        }
       })
     }
 
@@ -231,13 +221,17 @@ export default function Registro() {
     const autoOccs: Ocorrencia[] = []
 
     finalItens.forEach((item, index) => {
-      const isProd = removeAccents(item.tipo || '')
-        .toLowerCase()
-        .includes('produto acabado')
-      const isUDU = removeAccents(item.setorDestino || '').toLowerCase() === 'udu'
+      const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
+      const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
 
-      if (isProd && isUDU) {
-        if (item.enviou1gAtivo === 'nao' || item.enviou1gExcipiente === 'nao') {
+      const isProd = tipoNorm.includes('produto acabado')
+      const isUDU = setorNorm === 'udu'
+      const isFQ = setorNorm.includes('fisico-quimico')
+
+      const isRule1 = isProd && (isUDU || isFQ)
+
+      if (isRule1) {
+        if (item.enviou1gAtivo !== 'sim' || item.enviou1gExcipiente !== 'sim') {
           const desc = `Amostra ${index + 1} (${item.descricao || 'Sem descrição'}): Falta 1g Ativo/Excipiente.`
           const exists =
             (ficha.ocorrencias || []).some((o) => o.descricao === desc) ||

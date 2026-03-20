@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Trash2, Plus, Camera, X } from 'lucide-react'
+import { Trash2, Plus, Camera, X, Info } from 'lucide-react'
 import { AmostraItem } from '@/types'
 import { useAppStore } from '@/stores/main'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -61,18 +61,24 @@ export function RegistroItens({
 
         const tipoNorm = removeAccents(newItem.tipo || '').toLowerCase()
         const setorNorm = removeAccents(newItem.setorDestino || '').toLowerCase()
+
         const isProd = tipoNorm.includes('produto acabado')
         const isMp = tipoNorm.includes('materia-prima diluida')
         const isUDU = setorNorm === 'udu'
         const isFQ = setorNorm.includes('fisico-quimico')
 
-        if (!(isProd && isUDU)) {
+        const isRule1 = isProd && (isUDU || isFQ)
+        const isRule2 = isMp && isFQ
+
+        if (!isRule1) {
           delete newItem.dosagem
           delete newItem.unidadeDosagem
           delete newItem.enviou1gExcipiente
           delete newItem.enviou1gAtivo
         }
-        if (!(isMp && isFQ)) delete newItem.fatorDiluicao
+        if (!isRule2) {
+          delete newItem.fatorDiluicao
+        }
 
         return newItem
       }),
@@ -119,14 +125,18 @@ export function RegistroItens({
         {itens.map((item, index) => {
           const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
           const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
+
           const isProd = tipoNorm.includes('produto acabado')
           const isMp = tipoNorm.includes('materia-prima diluida')
           const isUDU = setorNorm === 'udu'
           const isFQ = setorNorm.includes('fisico-quimico')
 
-          const showDosagem = isProd && isUDU
-          const show1g = isProd && isUDU
-          const showFatorDiluicao = isMp && isFQ
+          const isRule1 = isProd && (isUDU || isFQ)
+          const isRule2 = isMp && isFQ
+
+          const showDosagem = isRule1
+          const show1g = isRule1
+          const showFatorDiluicao = isRule2
 
           return (
             <div
@@ -387,6 +397,11 @@ export function RegistroItens({
 
               {show1g && (
                 <div className="space-y-2 col-span-4 animate-fade-in bg-warning/5 p-3 rounded border border-warning/10">
+                  <div className="flex items-center gap-1.5 mb-3 text-xs text-warning-foreground/80 font-medium">
+                    <Info className="w-4 h-4" />
+                    Ausência de envio gera uma pendência não-bloqueante, permitindo a finalização da
+                    ficha.
+                  </div>
                   <div className="flex gap-6">
                     <div className="space-y-2">
                       <Label className="text-xs">Enviou 1g Excipiente?</Label>
@@ -427,7 +442,12 @@ export function RegistroItens({
               )}
 
               <div className="space-y-2 md:col-span-4 pt-2 border-t">
-                <Label>Fotos de Não Conformidade ({item.fotos?.length || 0}/3)</Label>
+                <Label className="flex items-center gap-2">
+                  Fotos de Não Conformidade ({item.fotos?.length || 0}/3)
+                  <span className="text-[10px] text-muted-foreground font-normal bg-muted px-1.5 py-0.5 rounded">
+                    Gera pendência não-bloqueante
+                  </span>
+                </Label>
                 <div className="flex gap-2 mt-1">
                   {item.fotos?.map((foto, fIdx) => (
                     <div key={fIdx} className="relative group">
