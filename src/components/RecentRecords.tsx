@@ -43,6 +43,7 @@ export function RecentRecords({
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('Todos')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isPrinting, setIsPrinting] = useState(false)
 
   const filteredFichas = useMemo(() => {
     const s = searchTerm.toLowerCase().trim()
@@ -70,14 +71,21 @@ export function RecentRecords({
     setSelectedIds(newSelected)
   }
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     window.print()
     if (canAccessSecretariaFeatures) {
       const toUpdate = fichas.filter((f) => selectedIds.has(f.id) && f.status === 'Finalizada')
       if (toUpdate.length > 0) {
-        toUpdate.forEach((f) => {
-          updateFicha({ ...f, status: 'Finalizada (Impressa)' })
-        })
+        setIsPrinting(true)
+        try {
+          await Promise.all(
+            toUpdate.map((f) =>
+              updateFicha({ ...f, status: 'Finalizada (Impressa)' }).catch(() => {}),
+            ),
+          )
+        } finally {
+          setIsPrinting(false)
+        }
       }
     }
   }
@@ -95,7 +103,7 @@ export function RecentRecords({
             <CardDescription>Acompanhe e filtre os recebimentos de amostras.</CardDescription>
           </div>
           {canAccessSecretariaFeatures && selectedIds.size > 0 && (
-            <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Button variant="outline" size="sm" onClick={handlePrint} disabled={isPrinting}>
               <Printer className="mr-2 h-4 w-4" /> Imprimir ({selectedIds.size})
             </Button>
           )}

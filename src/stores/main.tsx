@@ -8,9 +8,9 @@ interface AppContextData {
   configuracoes: Configuracoes
   auditLogs: AuditLog[]
   notifications: AppNotification[]
-  addFicha: (ficha: Ficha) => void
-  updateFicha: (ficha: Ficha) => void
-  deleteFicha: (uuid: string, id: string) => void
+  addFicha: (ficha: Ficha) => Promise<void>
+  updateFicha: (ficha: Ficha) => Promise<void>
+  deleteFicha: (uuid: string, id: string) => Promise<void>
   updateConfiguracoes: (config: Configuracoes) => void
   addAuditLog: (log: Omit<AuditLog, 'id' | 'timestamp'>) => void
   addNotification: (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => void
@@ -225,9 +225,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('app_config', JSON.stringify(configuracoes))
   }, [configuracoes])
 
-  const addFicha = (ficha: Ficha) => createFicha(ficha)
-  const updateFicha = (ficha: Ficha) => updateDbFicha(ficha)
-  const deleteFicha = (uuid: string, id: string) => removeDbFicha(uuid, id)
+  const addFicha = async (ficha: Ficha) => await createFicha(ficha)
+  const updateFicha = async (ficha: Ficha) => await updateDbFicha(ficha)
+  const deleteFicha = async (uuid: string, id: string) => await removeDbFicha(uuid, id)
 
   const updateConfiguracoes = (config: Configuracoes) => {
     const setores = sanitizeList(config.setores)

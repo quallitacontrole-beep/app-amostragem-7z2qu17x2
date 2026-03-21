@@ -40,6 +40,7 @@ export default function Registro() {
   const { user } = useAuthStore()
   const [isOccModalOpen, setOccModalOpen] = useState(false)
   const [occText, setOccText] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   const existingFicha = id ? fichas.find((f) => f.id === id) : undefined
 
@@ -194,7 +195,8 @@ export default function Registro() {
     return true
   }
 
-  const saveFicha = (isIntermediateSave: boolean, ocorrencias?: Ocorrencia[]) => {
+  const saveFicha = async (isIntermediateSave: boolean, ocorrencias?: Ocorrencia[]) => {
+    setIsSaving(true)
     const isExisting = !!id || fichas.some((f) => f.id === ficha.id)
     const action = isExisting ? 'Atualizou' : 'Criou'
 
@@ -270,40 +272,48 @@ export default function Registro() {
       isDraft: isIntermediateSave ? ficha.isDraft : false,
     }
 
-    if (isExisting) {
-      updateFicha(finalFicha)
-    } else {
-      addFicha(finalFicha)
+    try {
+      if (isExisting) {
+        await updateFicha(finalFicha)
+      } else {
+        await addFicha(finalFicha)
+      }
+
+      setFicha(finalFicha)
+      addAuditLog({ userId: user!.id, userName: user!.name, action, fichaId: ficha.id })
+      setIsSaving(false)
+      return true
+    } catch (err) {
+      setIsSaving(false)
+      return false
     }
-
-    setFicha(finalFicha)
-
-    addAuditLog({ userId: user!.id, userName: user!.name, action, fichaId: ficha.id })
   }
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     if (!validateForm(true)) return
-    saveFicha(true)
-    toast.success('Progresso salvo com sucesso!', {
-      description: 'Você pode continuar editando a ficha.',
-    })
-    if (!id) {
-      navigate(`/registro/${ficha.id}`, { replace: true })
+    const success = await saveFicha(true)
+    if (success) {
+      toast.success('Progresso salvo com sucesso!', {
+        description: 'Você pode continuar editando a ficha.',
+      })
+      if (!id) navigate(`/registro/${ficha.id}`, { replace: true })
     }
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm(false)) return
-    saveFicha(false)
-    if (user?.sector === 'Secretaria') {
-      toast.success('Alterações salvas com sucesso!')
-    } else {
-      toast.success('Ficha salva e enviada para a Secretaria!')
+    const success = await saveFicha(false)
+    if (success) {
+      if (user?.sector === 'Secretaria') {
+        toast.success('Alterações salvas com sucesso!')
+      } else {
+        toast.success('Ficha salva e enviada para a Secretaria!')
+      }
+      navigate('/')
     }
-    navigate('/')
   }
 
-  const handleOcorrenciaSubmit = () => {
+  const handleOcorrenciaSubmit = async () => {
     if (!ficha.clienteNome) {
       toast.error('Preencha o Cliente primeiro.')
       return
@@ -318,13 +328,16 @@ export default function Registro() {
       resolvida: false,
       responsavelAmostragem: user?.name,
     }
-    saveFicha(false, [newOcc])
-    toast.success('Ocorrência gerada e ficha enviada para Secretaria.')
-    setOccModalOpen(false)
-    navigate('/')
+    const success = await saveFicha(false, [newOcc])
+    if (success) {
+      toast.success('Ocorrência gerada e ficha enviada para Secretaria.')
+      setOccModalOpen(false)
+      navigate('/')
+    }
   }
 
-  const handleConfirmarTroca = (itemId: string) => {
+  const handleConfirmarTroca = async (itemId: string) => {
+    setIsSaving(true)
     const newItens = ficha.itens.map((i) => {
       if (i.id === itemId) {
         const oldItem = existingFicha?.itens.find((old) => old.id === itemId)
@@ -353,49 +366,71 @@ export default function Registro() {
     } as Ficha
 
     setFicha(updated)
-    updateFicha(updated)
 
-    if (isNowComplete) {
-      toast.success('Checklist 100% concluído! A ficha foi Finalizada automaticamente.')
-      navigate('/')
-    } else {
-      toast.success('Confirmação de troca registrada com sucesso!')
+    try {
+      await updateFicha(updated)
+      setIsSaving(false)
+      if (isNowComplete) {
+        toast.success('Checklist 100% concluído! A ficha foi Finalizada automaticamente.')
+        navigate('/')
+      } else {
+        toast.success('Confirmação de troca registrada com sucesso!')
+      }
+    } catch {
+      setFicha(ficha) // rollback
+      setIsSaving(false)
     }
   }
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     window.print()
     if (ficha.status === 'Finalizada') {
       const updated = { ...ficha, status: 'Finalizada (Impressa)' as StatusFicha }
       setFicha(updated)
-      updateFicha(updated)
+      try {
+        await updateFicha(updated)
+      } catch {
+        setFicha(ficha) // rollback state if db fails
+      }
     }
   }
 
-  const handleDescartar = () => {
+  const handleDescartar = async () => {
     if (!ficha.uuid && !id) {
       toast.error('Ficha não pode ser descartada.')
       return
     }
     if (window.confirm(`Deseja realmente descartar esta ficha? Esta ação é irreversível.`)) {
       if (ficha.uuid) {
-        deleteFicha(ficha.uuid, ficha.id)
+        setIsSaving(true)
+        try {
+          await deleteFicha(ficha.uuid, ficha.id)
+          toast.success('Ficha descartada com sucesso.')
+          navigate('/')
+        } catch {
+          setIsSaving(false)
+        }
       }
-      toast.success('Ficha descartada com sucesso.')
-      navigate('/')
     }
   }
 
-  const handleReabrir = () => {
+  const handleReabrir = async () => {
     if (
       window.confirm(
         "Deseja realmente reabrir esta ficha? Ela voltará para o status 'Aguardando Secretaria' e poderá ser editada novamente.",
       )
     ) {
+      setIsSaving(true)
       const updated = { ...ficha, status: 'Aguardando Secretaria' as StatusFicha }
       setFicha(updated)
-      updateFicha(updated)
-      toast.success('Ficha reaberta com sucesso.')
+      try {
+        await updateFicha(updated)
+        toast.success('Ficha reaberta com sucesso.')
+      } catch {
+        setFicha(ficha)
+      } finally {
+        setIsSaving(false)
+      }
     }
   }
 
@@ -469,7 +504,11 @@ export default function Registro() {
                         <span className="font-bold text-foreground">{item.ordemServico}</span>
                       </div>
                     </div>
-                    <Button size="sm" onClick={() => handleConfirmarTroca(item.id)}>
+                    <Button
+                      size="sm"
+                      onClick={() => handleConfirmarTroca(item.id)}
+                      disabled={isSaving}
+                    >
                       Confirmar troca de etiqueta
                     </Button>
                   </div>
@@ -523,19 +562,29 @@ export default function Registro() {
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t flex justify-end gap-3 z-40 sm:left-[16rem] print:hidden">
           <div className="mr-auto flex flex-wrap gap-2">
             {user?.sector === 'Secretaria' && id && (
-              <Button variant="outline" onClick={handlePrint} type="button">
+              <Button variant="outline" onClick={handlePrint} type="button" disabled={isSaving}>
                 <Printer className="mr-2 h-4 w-4" /> Imprimir
               </Button>
             )}
             {user?.sector === 'Secretaria' &&
               id &&
               (ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)') && (
-                <Button variant="secondary" onClick={handleReabrir} type="button">
+                <Button
+                  variant="secondary"
+                  onClick={handleReabrir}
+                  type="button"
+                  disabled={isSaving}
+                >
                   <RefreshCw className="mr-2 h-4 w-4" /> Reabrir Ficha
                 </Button>
               )}
             {(user?.role === 'Administrador' || user?.sector === 'Amostragem') && id && (
-              <Button variant="destructive" onClick={handleDescartar} type="button">
+              <Button
+                variant="destructive"
+                onClick={handleDescartar}
+                type="button"
+                disabled={isSaving}
+              >
                 <Trash2 className="mr-2 h-4 w-4" /> Descartar Ficha
               </Button>
             )}
@@ -543,7 +592,11 @@ export default function Registro() {
               <Button
                 variant="destructive"
                 onClick={() => setOccModalOpen(true)}
-                disabled={ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)'}
+                disabled={
+                  isSaving ||
+                  ficha.status === 'Finalizada' ||
+                  ficha.status === 'Finalizada (Impressa)'
+                }
               >
                 <AlertTriangle className="mr-2 h-4 w-4" /> Resolução
               </Button>
@@ -551,15 +604,16 @@ export default function Registro() {
           </div>
 
           {user?.sector !== 'Secretaria' && (
-            <Button variant="outline" onClick={handleSaveDraft}>
+            <Button variant="outline" onClick={handleSaveDraft} disabled={isSaving}>
               <Save className="mr-2 h-4 w-4" /> Salvar
             </Button>
           )}
           <Button
             onClick={handleSubmit}
             disabled={
-              user?.sector !== 'Secretaria' &&
-              (ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)')
+              isSaving ||
+              (user?.sector !== 'Secretaria' &&
+                (ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)'))
             }
           >
             {user?.sector === 'Secretaria' ? (
@@ -598,10 +652,10 @@ export default function Registro() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOccModalOpen(false)}>
+              <Button variant="outline" onClick={() => setOccModalOpen(false)} disabled={isSaving}>
                 Cancelar
               </Button>
-              <Button variant="destructive" onClick={handleOcorrenciaSubmit}>
+              <Button variant="destructive" onClick={handleOcorrenciaSubmit} disabled={isSaving}>
                 Gerar ocorrência
               </Button>
             </DialogFooter>
