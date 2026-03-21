@@ -27,7 +27,7 @@ import {
 import { toast } from 'sonner'
 import { CheckCircle2, AlertTriangle, ShieldCheck, Download } from 'lucide-react'
 import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { cn, processAutoOccurrences } from '@/lib/utils'
 import { RegistroHeader } from '@/components/RegistroHeader'
 import { RegistroItens } from '@/components/RegistroItens'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -66,7 +66,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       const oldItem = ficha?.itens.find((i) => i.id === newItem.id)
       const oldOs = oldItem?.ordemServico || ''
       const newOs = newItem.ordemServico || ''
-      if (newOs && oldOs !== newOs) {
+      if (newOs && oldOs !== newOs && isSecretaria) {
         hasOSChanged = true
       }
     })
@@ -186,7 +186,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     const oit = ficha?.itens.find((i) => i.id === it.id)
     const oldOs = oit?.ordemServico || ''
     const newOs = it.ordemServico || ''
-    const isChangedNow = newOs && oldOs !== newOs
+    const isChangedNow = newOs && oldOs !== newOs && isSecretaria
     const wasChangedBefore = it.trocaEtiquetaSolicitada && !it.trocaEtiquetaConfirmada
     if (isChangedNow) return true
     return wasChangedBefore
@@ -203,15 +203,15 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       ? localFicha.itens.every((it) => it.ordemServico?.includes('-'))
       : false
 
-  const isOcorrenciasZeradas =
-    localFicha?.ocorrencias.every((o) => o.resolvida || o.isNonBlocking) ?? true
+  const isAllResolved = localFicha?.ocorrencias.every((o) => o.resolvida) ?? true
+  const hasNoBlocking = localFicha?.ocorrencias.every((o) => o.resolvida || o.isNonBlocking) ?? true
 
   const isVistoSecretaria = !!localFicha?.vistoSecretaria
 
   const canConcluir =
     isContratoValidado &&
     isOsVinculado &&
-    isOcorrenciasZeradas &&
+    hasNoBlocking &&
     isVistoSecretaria &&
     !needsTagConfirmation
 
@@ -245,7 +245,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       const oldOs = oit?.ordemServico || ''
       const newOs = lit.ordemServico || ''
 
-      if (newOs && oldOs !== newOs) {
+      if (newOs && oldOs !== newOs && isSecretaria) {
         isChangedNow = true
         hasOSChanged = true
         addNotification({
@@ -270,6 +270,8 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
       }
     })
 
+    const mergedOccs = processAutoOccurrences(updatedItems, localFicha.ocorrencias, user?.name)
+
     let finalStatus = targetStatus || localFicha.status
     if (hasOSChanged && !targetStatus) {
       finalStatus = 'Aguardando Amostragem'
@@ -282,6 +284,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     return {
       ...localFicha,
       itens: updatedItems,
+      ocorrencias: mergedOccs,
       status: finalStatus,
     }
   }
@@ -308,12 +311,14 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
     }
   }
 
-  const CheckItem = ({ label, ok }: { label: string; ok: boolean }) => (
+  const CheckItem = ({ label, ok, warning }: { label: string; ok: boolean; warning?: boolean }) => (
     <div className="flex items-center gap-2">
       {ok ? (
         <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-      ) : (
+      ) : warning ? (
         <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
+      ) : (
+        <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
       )}
       <span className="text-sm font-medium leading-tight">{label}</span>
     </div>
@@ -420,7 +425,7 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                       className="data-[state=checked]:bg-destructive data-[state=checked]:border-destructive"
                     />
                     <Label htmlFor="confirm-tags" className="font-medium cursor-pointer text-sm">
-                      Confirmo que as etiquetas físicas foram trocadas.
+                      Confirmar troca de etiqueta
                     </Label>
                   </div>
                 </div>
@@ -436,7 +441,11 @@ export function PendenciaModal({ ficha, isOpen, onClose, onSave }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <CheckItem label="Contrato preenchido" ok={isContratoValidado} />
                   <CheckItem label="Vínculo de OS" ok={isOsVinculado} />
-                  <CheckItem label="Ocorrências Bloqueantes Zeradas" ok={isOcorrenciasZeradas} />
+                  <CheckItem
+                    label="Pendências Zeradas"
+                    ok={isAllResolved}
+                    warning={!isAllResolved && hasNoBlocking}
+                  />
                   <CheckItem label="Visto da Secretaria" ok={isVistoSecretaria} />
                   <CheckItem label="Etiquetas Atualizadas" ok={!needsTagConfirmation} />
                 </div>

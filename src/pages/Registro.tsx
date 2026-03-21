@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Send, AlertTriangle, ShieldAlert, Tag, Printer, X, Trash2 } from 'lucide-react'
+import {
+  Save,
+  Send,
+  AlertTriangle,
+  ShieldAlert,
+  Tag,
+  Printer,
+  X,
+  Trash2,
+  RefreshCw,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Ficha, Ocorrencia, StatusFicha } from '@/types'
@@ -21,7 +31,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { isValidCpf, isValidCnpj, removeAccents } from '@/lib/utils'
+import { isValidCpf, isValidCnpj, removeAccents, processAutoOccurrences } from '@/lib/utils'
 
 export default function Registro() {
   const { id } = useParams()
@@ -71,34 +81,31 @@ export default function Registro() {
   )
   const isOsVinculado =
     ficha.itens.length > 0 && ficha.itens.every((it) => it.ordemServico?.includes('-'))
-  const isOcorrenciasZeradas = ficha.ocorrencias.every((o) => o.resolvida || o.isNonBlocking)
+  const hasNoBlocking = ficha.ocorrencias.every((o) => o.resolvida || o.isNonBlocking)
+  const isAllResolved = ficha.ocorrencias.every((o) => o.resolvida)
   const needsTagConfirmation = ficha.itens.some(
     (i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada,
   )
   const isVistoSecretaria = !!ficha.vistoSecretaria
 
-  const isAllComplete =
+  const canConcluir =
     isContratoValidado &&
     isOsVinculado &&
-    isOcorrenciasZeradas &&
+    hasNoBlocking &&
     isVistoSecretaria &&
     !needsTagConfirmation
 
   useEffect(() => {
     if (!existingFicha) return
-    if (
-      isAllComplete &&
-      ficha.status !== 'Finalizada' &&
-      ficha.status !== 'Finalizada (Impressa)'
-    ) {
+    if (canConcluir && ficha.status !== 'Finalizada' && ficha.status !== 'Finalizada (Impressa)') {
       setFicha((prev) => ({ ...prev, status: 'Finalizada' }))
       if (user?.sector === 'Secretaria') {
         toast.success('Checklist completo! Status alterado para Finalizada.')
       }
-    } else if (!isAllComplete && ficha.status === 'Finalizada') {
+    } else if (!canConcluir && ficha.status === 'Finalizada') {
       setFicha((prev) => ({ ...prev, status: 'Validação Secretaria' }))
     }
-  }, [isAllComplete, ficha.status, existingFicha, user?.sector])
+  }, [canConcluir, ficha.status, existingFicha, user?.sector])
 
   const canAccess =
     user?.role === 'Administrador' ||
@@ -195,7 +202,7 @@ export default function Registro() {
       const oldItem = existingFicha?.itens.find((i) => i.id === item.id)
       const oldOs = oldItem?.ordemServico || ''
       const newOs = item.ordemServico || ''
-      const isChangedNow = newOs && oldOs !== newOs
+      const isChangedNow = newOs && oldOs !== newOs && user?.sector === 'Secretaria'
 
       if (isChangedNow && !item.trocaEtiquetaConfirmada) {
         return {
@@ -207,52 +214,10 @@ export default function Registro() {
       return item
     })
 
-    const autoOccs: Ocorrencia[] = []
-
-    finalItens.forEach((item, index) => {
-      const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
-      const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
-
-      const isProd = tipoNorm.includes('produto acabado')
-      const isUDU = setorNorm === 'udu'
-      const isFQ = setorNorm.includes('fisico-quimico')
-
-      const isRule1 = isProd && (isUDU || isFQ)
-
-      if (isRule1) {
-        if (item.enviou1gAtivo !== 'sim' || item.enviou1gExcipiente !== 'sim') {
-          const desc = `Amostra ${index + 1} (${item.descricao || 'Sem descrição'}): Falta 1g Ativo/Excipiente.`
-          const exists =
-            (ficha.ocorrencias || []).some((o) => o.descricao === desc) ||
-            autoOccs.some((o) => o.descricao === desc)
-          if (!exists) {
-            autoOccs.push({
-              id: `occ-auto-1g-${Date.now()}-${index}`,
-              descricao: desc,
-              resolvida: false,
-              isNonBlocking: true,
-              responsavelAmostragem: user?.name,
-            })
-          }
-        }
-      }
-
-      if (item.fotos && item.fotos.length > 0) {
-        const desc = `Amostra ${index + 1} (${item.descricao || 'Sem descrição'}): Fotos de Não Conformidade anexadas.`
-        const exists =
-          (ficha.ocorrencias || []).some((o) => o.descricao === desc) ||
-          autoOccs.some((o) => o.descricao === desc)
-        if (!exists) {
-          autoOccs.push({
-            id: `occ-auto-foto-${Date.now()}-${index}`,
-            descricao: desc,
-            resolvida: false,
-            isNonBlocking: true,
-            responsavelAmostragem: user?.name,
-          })
-        }
-      }
-    })
+    let mergedOccs = processAutoOccurrences(finalItens, ficha.ocorrencias, user?.name)
+    if (ocorrencias) {
+      mergedOccs = [...mergedOccs, ...ocorrencias]
+    }
 
     let status = ficha.status
 
@@ -263,8 +228,8 @@ export default function Registro() {
       status = 'Aguardando Amostragem'
     }
 
-    const hasNewAutoOccs = autoOccs.length > 0
-    const hasManualOccs = ocorrencias && ocorrencias.length > 0
+    const autoOccsPending = mergedOccs.some((o) => !o.resolvida && o.isNonBlocking)
+    const blockingPending = mergedOccs.some((o) => !o.resolvida && !o.isNonBlocking)
 
     if (isIntermediateSave) {
       if (
@@ -277,7 +242,7 @@ export default function Registro() {
       ) {
         status = 'Em Triagem'
       }
-    } else if (hasManualOccs || (hasNewAutoOccs && autoOccs.some((o) => !o.isNonBlocking))) {
+    } else if (blockingPending || ocorrencias?.length) {
       status = 'Aguardando Secretaria'
     } else {
       if (
@@ -292,14 +257,9 @@ export default function Registro() {
 
     if (user?.sector === 'Secretaria' && ficha.status) {
       status = ficha.status === 'Resolvida' ? 'Finalizada' : ficha.status
-      if (!isAllComplete && status === 'Finalizada') {
+      if (!canConcluir && status === 'Finalizada') {
         status = 'Validação Secretaria'
       }
-    }
-
-    let mergedOccs = [...ficha.ocorrencias, ...autoOccs]
-    if (ocorrencias) {
-      mergedOccs = [...mergedOccs, ...ocorrencias]
     }
 
     const finalFicha = {
@@ -382,7 +342,7 @@ export default function Registro() {
       isContratoValidado &&
       newItens.length > 0 &&
       newItens.every((it) => it.ordemServico?.includes('-')) &&
-      isOcorrenciasZeradas &&
+      hasNoBlocking &&
       isVistoSecretaria &&
       !newItens.some((i) => i.trocaEtiquetaSolicitada && !i.trocaEtiquetaConfirmada)
 
@@ -412,17 +372,30 @@ export default function Registro() {
     }
   }
 
-  const handleDelete = () => {
+  const handleDescartar = () => {
     if (!ficha.uuid && !id) {
-      toast.error('Ficha não pode ser excluída.')
+      toast.error('Ficha não pode ser descartada.')
       return
     }
-    if (window.confirm(`Tem certeza que deseja excluir a ficha ${ficha.id}?`)) {
+    if (window.confirm(`Deseja realmente descartar esta ficha? Esta ação é irreversível.`)) {
       if (ficha.uuid) {
         deleteFicha(ficha.uuid, ficha.id)
       }
-      toast.success('Ficha excluída com sucesso.')
+      toast.success('Ficha descartada com sucesso.')
       navigate('/')
+    }
+  }
+
+  const handleReabrir = () => {
+    if (
+      window.confirm(
+        "Deseja realmente reabrir esta ficha? Ela voltará para o status 'Aguardando Secretaria' e poderá ser editada novamente.",
+      )
+    ) {
+      const updated = { ...ficha, status: 'Aguardando Secretaria' as StatusFicha }
+      setFicha(updated)
+      updateFicha(updated)
+      toast.success('Ficha reaberta com sucesso.')
     }
   }
 
@@ -443,7 +416,7 @@ export default function Registro() {
     const oldItem = existingFicha?.itens.find((i) => i.id === item.id)
     const oldOs = oldItem?.ordemServico || ''
     const newOs = item.ordemServico || ''
-    const isChangedNow = newOs && oldOs !== newOs
+    const isChangedNow = newOs && oldOs !== newOs && user?.sector === 'Secretaria'
     if (isChangedNow && !item.trocaEtiquetaConfirmada) return true
     if (item.trocaEtiquetaSolicitada && !item.trocaEtiquetaConfirmada) return true
     return false
@@ -491,13 +464,13 @@ export default function Registro() {
                     <div className="text-[13px]">
                       <span className="font-semibold text-foreground">{item.descricao}</span>
                       <div className="text-muted-foreground mt-1">
-                        Ordem de Serviço alterada de{' '}
-                        <span className="line-through">{previousOs}</span> para{' '}
+                        Atenção: Troca de Etiqueta Necessária. Etiqueta Anterior (Descartar):{' '}
+                        <span className="line-through">{previousOs}</span>. Nova Etiqueta:{' '}
                         <span className="font-bold text-foreground">{item.ordemServico}</span>
                       </div>
                     </div>
                     <Button size="sm" onClick={() => handleConfirmarTroca(item.id)}>
-                      Confirmar Troca Fisicamente
+                      Confirmar troca de etiqueta
                     </Button>
                   </div>
                 )
@@ -554,9 +527,16 @@ export default function Registro() {
                 <Printer className="mr-2 h-4 w-4" /> Imprimir
               </Button>
             )}
-            {user?.role === 'Administrador' && id && (
-              <Button variant="destructive" onClick={handleDelete} type="button">
-                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+            {user?.sector === 'Secretaria' &&
+              id &&
+              (ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)') && (
+                <Button variant="secondary" onClick={handleReabrir} type="button">
+                  <RefreshCw className="mr-2 h-4 w-4" /> Reabrir Ficha
+                </Button>
+              )}
+            {(user?.role === 'Administrador' || user?.sector === 'Amostragem') && id && (
+              <Button variant="destructive" onClick={handleDescartar} type="button">
+                <Trash2 className="mr-2 h-4 w-4" /> Descartar Ficha
               </Button>
             )}
             {user?.sector !== 'Secretaria' && (

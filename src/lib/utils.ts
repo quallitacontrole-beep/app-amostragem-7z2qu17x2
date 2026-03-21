@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { AmostraItem, Ocorrencia } from '@/types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -69,4 +70,69 @@ export const formatCpfCnpj = (val: string) => {
       .replace(/(\d{4})(\d)/, '$1-$2')
       .replace(/(-\d{2})\d+?$/, '$1')
   }
+}
+
+export function processAutoOccurrences(
+  itens: AmostraItem[],
+  existingOccurrences: Ocorrencia[],
+  userName?: string,
+): Ocorrencia[] {
+  const newOccs: Ocorrencia[] = []
+  const updatedOccs = existingOccurrences.map((o) => ({ ...o }))
+
+  itens.forEach((item, index) => {
+    const tipoNorm = removeAccents(item.tipo || '').toLowerCase()
+    const setorNorm = removeAccents(item.setorDestino || '').toLowerCase()
+    const isProd = tipoNorm.includes('produto acabado')
+    const isUDU = setorNorm === 'udu'
+    const isFQ = setorNorm.includes('fisico-quimico')
+    const isRule1 = isProd && (isUDU || isFQ)
+
+    if (isRule1) {
+      if (item.enviou1gAtivo !== 'sim' || item.enviou1gExcipiente !== 'sim') {
+        const desc = `Amostra ${index + 1} (${item.descricao || 'Sem descrição'}): Falta 1g Ativo/Excipiente.`
+        const occId = `occ-auto-1g-${item.id}`
+        const existing = updatedOccs.find((o) => o.id === occId)
+        if (!existing) {
+          newOccs.push({
+            id: occId,
+            descricao: desc,
+            resolvida: false,
+            isNonBlocking: true,
+            responsavelAmostragem: userName,
+          })
+        }
+      }
+    }
+
+    const hasFotos = item.fotos && item.fotos.length > 0
+    const hasObs = !!item.observacoesAcondicionamento?.trim()
+    const occId = `occ-auto-foto-obs-${item.id}`
+    const existingIndex = updatedOccs.findIndex((o) => o.id === occId)
+
+    if (hasFotos || hasObs) {
+      let descParts = []
+      if (hasFotos) descParts.push('Fotos de Não Conformidade anexadas')
+      if (hasObs) descParts.push(`Obs: ${item.observacoesAcondicionamento}`)
+      const desc = `Amostra ${index + 1} (${item.descricao || 'Sem descrição'}): ${descParts.join(' | ')}.`
+
+      if (existingIndex >= 0) {
+        updatedOccs[existingIndex].descricao = desc
+      } else {
+        newOccs.push({
+          id: occId,
+          descricao: desc,
+          resolvida: false,
+          isNonBlocking: true,
+          responsavelAmostragem: userName,
+        })
+      }
+    } else {
+      if (existingIndex >= 0 && !updatedOccs[existingIndex].resolvida) {
+        updatedOccs.splice(existingIndex, 1)
+      }
+    }
+  })
+
+  return [...updatedOccs, ...newOccs]
 }

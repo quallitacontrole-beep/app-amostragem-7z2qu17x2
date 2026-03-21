@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/StatusBadge'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FileEdit, ShieldAlert } from 'lucide-react'
 import { format } from 'date-fns'
@@ -52,7 +53,9 @@ export default function Pendencias() {
     const amoStatus = f.status === 'Aguardando Amostragem'
 
     const isCompleted = f.status === 'Finalizada' || f.status === 'Finalizada (Impressa)'
+    const hasOpenPendencies = f.ocorrencias?.some((o) => !o.resolvida)
 
+    if (isCompleted && hasOpenPendencies) return true
     if (isCompleted) return false
 
     if (isSecretariaRole && isAmostragemRole) {
@@ -64,9 +67,19 @@ export default function Pendencias() {
   })
 
   const filteredData = {
-    ocorrencias: pendentes.filter((f) => f.ocorrencias.some((o) => !o.resolvida)),
+    ocorrencias: pendentes.filter(
+      (f) =>
+        f.ocorrencias.some((o) => !o.resolvida) &&
+        f.status !== 'Finalizada' &&
+        f.status !== 'Finalizada (Impressa)',
+    ),
     semOS: pendentes.filter((f) => f.itens.some((i) => !i.ordemServico)),
     semContrato: pendentes.filter((f) => !f.codigoContrato),
+    finalizadasPendentes: pendentes.filter(
+      (f) =>
+        (f.status === 'Finalizada' || f.status === 'Finalizada (Impressa)') &&
+        f.ocorrencias.some((o) => !o.resolvida),
+    ),
   }
 
   const handleUpdateAndLog = (ficha: Ficha) => {
@@ -97,32 +110,48 @@ export default function Pendencias() {
               </TableCell>
             </TableRow>
           ) : (
-            data.map((ficha) => (
-              <TableRow
-                key={ficha.id}
-                className="hover:bg-muted/50 cursor-pointer"
-                onClick={() => setSelectedFicha(ficha)}
-              >
-                <TableCell className="font-medium">{ficha.id}</TableCell>
-                <TableCell>{format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')}</TableCell>
-                <TableCell>{ficha.clienteNome}</TableCell>
-                <TableCell>
-                  <StatusBadge status={ficha.status} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedFicha(ficha)
-                    }}
-                  >
-                    <FileEdit className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
+            data.map((ficha) => {
+              const isFinalizada =
+                ficha.status === 'Finalizada' || ficha.status === 'Finalizada (Impressa)'
+              const hasOpenPendencies = ficha.ocorrencias?.some((o) => !o.resolvida)
+
+              return (
+                <TableRow
+                  key={ficha.id}
+                  className="hover:bg-muted/50 cursor-pointer"
+                  onClick={() => setSelectedFicha(ficha)}
+                >
+                  <TableCell className="font-medium">{ficha.id}</TableCell>
+                  <TableCell>{format(new Date(ficha.dataRecebimento), 'dd/MM/yyyy')}</TableCell>
+                  <TableCell>{ficha.clienteNome}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1 items-start">
+                      <StatusBadge status={ficha.status} />
+                      {isFinalizada && hasOpenPendencies && (
+                        <Badge
+                          variant="outline"
+                          className="bg-warning/10 text-warning border-warning/20 text-[10px] whitespace-nowrap"
+                        >
+                          Finalizada c/ Pendências
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedFicha(ficha)
+                      }}
+                    >
+                      <FileEdit className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )
+            })
           )}
         </TableBody>
       </Table>
@@ -139,7 +168,7 @@ export default function Pendencias() {
       </div>
 
       <Tabs defaultValue="todas" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+        <TabsList className="flex flex-wrap w-full lg:w-fit h-auto justify-start gap-1 p-1">
           <TabsTrigger value="todas">Todas ({pendentes.length})</TabsTrigger>
           <TabsTrigger value="ocorrencias">
             Ocorrências ({filteredData.ocorrencias.length})
@@ -147,6 +176,9 @@ export default function Pendencias() {
           <TabsTrigger value="os">Aguardando OS ({filteredData.semOS.length})</TabsTrigger>
           <TabsTrigger value="contrato">
             Sem Contrato ({filteredData.semContrato.length})
+          </TabsTrigger>
+          <TabsTrigger value="finalizadas-pendentes">
+            Finalizadas c/ Pendências ({filteredData.finalizadasPendentes.length})
           </TabsTrigger>
         </TabsList>
         <TabsContent value="todas" className="mt-6">
@@ -160,6 +192,9 @@ export default function Pendencias() {
         </TabsContent>
         <TabsContent value="contrato" className="mt-6">
           {renderTable(filteredData.semContrato)}
+        </TabsContent>
+        <TabsContent value="finalizadas-pendentes" className="mt-6">
+          {renderTable(filteredData.finalizadasPendentes)}
         </TabsContent>
       </Tabs>
 

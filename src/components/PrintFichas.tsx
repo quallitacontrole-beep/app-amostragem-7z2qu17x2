@@ -50,7 +50,14 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
 
       {fichas.map((ficha, index) => (
         <div key={ficha.id || index} className="ficha-print-page">
-          <div className="border border-black p-3 mb-4 text-center">
+          <div className="border border-black p-3 mb-4 flex flex-col items-center justify-center relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <img
+                src="https://www.renylab.ind.br/wp-content/uploads/2021/08/logo_nova_qualita.png"
+                alt="Qualità Renylab"
+                className="h-10 object-contain"
+              />
+            </div>
             <h1 className="text-xl font-bold uppercase mb-1">
               {config.nomeFicha || 'Ficha de Recebimento de Amostras'}
             </h1>
@@ -153,6 +160,12 @@ export function PrintFichas({ fichas, config }: { fichas: Ficha[]; config: Confi
                       <div>
                         <span className="font-semibold">Enviou 1g Excipiente:</span>{' '}
                         {item.enviou1gExcipiente}
+                      </div>
+                    )}
+                    {item.observacoesAcondicionamento && (
+                      <div className="col-span-2 mt-1 border-t border-gray-200 pt-1">
+                        <span className="font-semibold">Obs. Acondicionamento:</span>{' '}
+                        {item.observacoesAcondicionamento}
                       </div>
                     )}
                   </div>

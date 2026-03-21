@@ -4,6 +4,7 @@ import { Search, Printer, FileText } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -157,46 +158,62 @@ export function RecentRecords({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredFichas.map((f) => (
-                    <TableRow
-                      key={f.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/registro/${f.id}`)}
-                    >
-                      {canAccessSecretariaFeatures && (
-                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedIds.has(f.id)}
-                            onCheckedChange={(c) => handleSelectOne(f.id, !!c)}
-                          />
+                  filteredFichas.map((f) => {
+                    const isFinalizada =
+                      f.status === 'Finalizada' || f.status === 'Finalizada (Impressa)'
+                    const hasOpenPendencies = f.ocorrencias?.some((o) => !o.resolvida)
+
+                    return (
+                      <TableRow
+                        key={f.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => navigate(`/registro/${f.id}`)}
+                      >
+                        {canAccessSecretariaFeatures && (
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedIds.has(f.id)}
+                              onCheckedChange={(c) => handleSelectOne(f.id, !!c)}
+                            />
+                          </TableCell>
+                        )}
+                        <TableCell className="font-medium text-[13px]">{f.id}</TableCell>
+                        <TableCell className="font-semibold text-[13px]">
+                          {f.clienteNome || '-'}
                         </TableCell>
-                      )}
-                      <TableCell className="font-medium text-[13px]">{f.id}</TableCell>
-                      <TableCell className="font-semibold text-[13px]">
-                        {f.clienteNome || '-'}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-[13px]">
-                        {f.dataRecebimento
-                          ? format(new Date(f.dataRecebimento), 'dd/MM/yyyy')
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={f.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            navigate(`/registro/${f.id}`)
-                          }}
-                        >
-                          <FileText className="h-4 w-4 mr-2" /> Abrir
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        <TableCell className="text-muted-foreground text-[13px]">
+                          {f.dataRecebimento
+                            ? format(new Date(f.dataRecebimento), 'dd/MM/yyyy')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1 items-start">
+                            <StatusBadge status={f.status} />
+                            {isFinalizada && hasOpenPendencies && (
+                              <Badge
+                                variant="outline"
+                                className="bg-warning/10 text-warning border-warning/20 text-[10px] whitespace-nowrap"
+                              >
+                                Finalizada c/ Pendências
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/registro/${f.id}`)
+                            }}
+                          >
+                            <FileText className="h-4 w-4 mr-2" /> Abrir
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>

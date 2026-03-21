@@ -1,5 +1,6 @@
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -442,7 +443,24 @@ export function RegistroItens({
                 </div>
               )}
 
-              <div className="space-y-2 md:col-span-4 pt-2 border-t">
+              <div className="space-y-2 md:col-span-4 pt-4 border-t">
+                <Label className="flex items-center gap-2">
+                  Observações sobre acondicionamento
+                  <span className="text-[10px] text-muted-foreground font-normal bg-muted px-1.5 py-0.5 rounded">
+                    Gera pendência não-bloqueante
+                  </span>
+                </Label>
+                <Textarea
+                  placeholder="Descreva o estado da embalagem, integridade ou outras observações..."
+                  value={item.observacoesAcondicionamento || ''}
+                  onChange={(e) =>
+                    handleUpdateItem(item.id, 'observacoesAcondicionamento', e.target.value)
+                  }
+                  className="min-h-[60px]"
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-4 pt-2">
                 <Label className="flex items-center gap-2">
                   Fotos de Não Conformidade ({item.fotos?.length || 0}/3)
                   <span className="text-[10px] text-muted-foreground font-normal bg-muted px-1.5 py-0.5 rounded">

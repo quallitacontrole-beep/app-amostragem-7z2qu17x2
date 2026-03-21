@@ -39,6 +39,7 @@ export interface AmostraItem {
   trocaEtiquetaConfirmada?: boolean
   ordemServicoAnterior?: string
   fotos?: string[]
+  observacoesAcondicionamento?: string
 }
 
 export interface Ficha {
