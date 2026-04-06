@@ -1,50 +1,35 @@
-export type DataSource = 'DB' | 'MOCK'
+import { useState, useEffect } from 'react'
 
 export interface RequestMetric {
   id: string
-  timestamp: string
-  source: DataSource
+  source: 'DB' | 'MOCK'
   latency: number
   operation: string
+  timestamp: string
   error: boolean
 }
 
+type Listener = () => void
+
 class MetricsStore {
-  private requests: RequestMetric[] = []
-  private errors: { time: string; msg: string }[] = []
-  private listeners: Set<() => void> = new Set()
+  requests: RequestMetric[] = []
+  errors: string[] = []
+  private listeners: Set<Listener> = new Set()
 
-  subscribe(listener: () => void) {
-    this.listeners.add(listener)
-    return () => this.listeners.delete(listener)
-  }
-
-  private notify() {
-    this.listeners.forEach((listener) => listener())
-  }
-
-  getState() {
-    return {
-      requests: this.requests,
-      errors: this.errors,
-      addRequest: this.addRequest.bind(this),
-      addError: this.addError.bind(this),
-      clear: this.clear.bind(this),
-    }
-  }
-
-  addRequest(req: Omit<RequestMetric, 'id' | 'timestamp'>) {
-    const newReq = {
-      ...req,
-      id: Math.random().toString(36).substring(7),
-      timestamp: new Date().toISOString(),
-    }
-    this.requests = [newReq, ...this.requests].slice(0, 100) // Keep last 100 requests
+  addRequest(metric: Omit<RequestMetric, 'id' | 'timestamp'>) {
+    this.requests = [
+      {
+        ...metric,
+        id: Math.random().toString(36).substring(7),
+        timestamp: new Date().toISOString(),
+      },
+      ...this.requests,
+    ].slice(0, 1000)
     this.notify()
   }
 
-  addError(msg: string) {
-    this.errors = [{ time: new Date().toISOString(), msg }, ...this.errors].slice(0, 50)
+  addError(error: string) {
+    this.errors = [error, ...this.errors].slice(0, 100)
     this.notify()
   }
 
@@ -53,10 +38,30 @@ class MetricsStore {
     this.errors = []
     this.notify()
   }
+
+  subscribe(listener: Listener) {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
+
+  private notify() {
+    this.listeners.forEach((l) => l())
+  }
 }
 
 export const metricsStore = new MetricsStore()
 
-export const useMetricsStore = {
-  getState: () => metricsStore.getState(),
+export function useMetrics() {
+  const [state, setState] = useState({
+    requests: metricsStore.requests,
+    errors: metricsStore.errors,
+  })
+
+  useEffect(() => {
+    return metricsStore.subscribe(() => {
+      setState({ requests: metricsStore.requests, errors: metricsStore.errors })
+    })
+  }, [])
+
+  return state
 }

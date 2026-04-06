@@ -1,11 +1,18 @@
 import { isMockSupabase } from './supabase'
 import { logger } from './logger'
-import { useMetricsStore } from '@/stores/metrics'
+import { metricsStore } from '@/stores/metrics'
 
 const MAX_RETRIES = 3
 const TIMEOUT_MS = 5000
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms))
+
+interface CacheEntry<T> {
+  data: T
+  timestamp: number
+}
+
+const cache = new Map<string, CacheEntry<any>>()
 
 export const DataAdapter = {
   async fetchWithRetry<T>(
@@ -13,9 +20,17 @@ export const DataAdapter = {
     operation: () => Promise<T>,
     fallbackOperation: () => T | Promise<T>,
     retries = MAX_RETRIES,
+    cacheTtlMs = 0,
   ): Promise<T> {
     const startTime = performance.now()
-    const metrics = useMetricsStore.getState()
+
+    if (cacheTtlMs > 0) {
+      const cached = cache.get(operationName)
+      if (cached && Date.now() - cached.timestamp < cacheTtlMs) {
+        logger.system(`Cache hit para '${operationName}'`)
+        return cached.data
+      }
+    }
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
@@ -37,18 +52,27 @@ export const DataAdapter = {
           tentativa: attempt,
           latencia: `${latency.toFixed(2)}ms`,
         })
-        metrics.addRequest({ source: 'DB', latency, operation: operationName, error: false })
+        metricsStore.addRequest({ source: 'DB', latency, operation: operationName, error: false })
+
+        if (cacheTtlMs > 0) {
+          cache.set(operationName, { data: result, timestamp: Date.now() })
+        }
 
         return result
       } catch (error: any) {
         logger.error(`Tentativa ${attempt} falhou para '${operationName}'`, error.message || error)
 
         if (attempt === retries) {
-          metrics.addError(`[${operationName}] ${error.message || 'Erro desconhecido'}`)
+          metricsStore.addError(`[${operationName}] ${error.message || 'Erro desconhecido'}`)
           logger.mock(`Aplicando fallback para dados locais em '${operationName}'`)
 
           const latency = performance.now() - startTime
-          metrics.addRequest({ source: 'MOCK', latency, operation: operationName, error: true })
+          metricsStore.addRequest({
+            source: 'MOCK',
+            latency,
+            operation: operationName,
+            error: true,
+          })
 
           return fallbackOperation()
         }
@@ -59,5 +83,13 @@ export const DataAdapter = {
     }
 
     return fallbackOperation()
+  },
+
+  clearCache(operationName?: string) {
+    if (operationName) {
+      cache.delete(operationName)
+    } else {
+      cache.clear()
+    }
   },
 }

@@ -14,6 +14,7 @@ import Relatorios from './pages/Relatorios'
 import Config from './pages/Config'
 import Perfil from './pages/Perfil'
 import Auditoria from './pages/Auditoria'
+import Diagnostico from './pages/Diagnostico'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/config" element={<Config />} />
                 <Route path="/perfil" element={<Perfil />} />
                 <Route path="/auditoria" element={<Auditoria />} />
+                <Route path="/diagnostico" element={<Diagnostico />} />
               </Route>
             </Route>
 
