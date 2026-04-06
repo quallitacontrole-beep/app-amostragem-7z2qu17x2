@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppProvider } from '@/stores/main'
 import { AuthProvider } from '@/stores/auth'
 import { NotificationWatcher } from '@/components/NotificationWatcher'
+import { SupabaseValidator } from '@/components/SupabaseValidator'
 import Layout from './components/Layout'
 import Index from './pages/Index'
 import Registro from './pages/Registro'
@@ -21,6 +22,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 const App = () => (
   <AuthProvider>
     <AppProvider>
+      <SupabaseValidator />
       <NotificationWatcher />
       <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
         <TooltipProvider>
