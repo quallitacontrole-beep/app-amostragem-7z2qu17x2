@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, isMockSupabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { Ficha, StatusFicha } from '@/types'
 import { toast } from 'sonner'
+import { DataAdapter } from '@/lib/data-adapter'
+import { logger } from '@/lib/logger'
 
 const mapStatusToApp = (dbStatus: string): StatusFicha => {
   switch (dbStatus) {
@@ -70,17 +72,25 @@ export function useFichasRecebimento() {
   const fetchFichas = useCallback(async () => {
     setLoading(true)
 
-    if (isMockSupabase) {
-      setFichas(getFallbackMockData())
-      setLoading(false)
-      return
-    }
-
     try {
-      const { data, error } = await supabase.from('fichas_recebimento').select('*')
-      if (error) throw error
+      const data = await DataAdapter.fetchWithRetry(
+        'fetchFichas',
+        async () => {
+          const { data, error } = await supabase.from('fichas_recebimento').select('*')
+          if (error) throw error
+          return data
+        },
+        () => getFallbackMockData(),
+      )
 
-      const mapped = data.map((row: any) => {
+      // Se for mock/fallback ele pode já vir mapeado
+      if (data && data.length > 0 && typeof data[0].numero_ficha === 'undefined' && data[0].id) {
+        setFichas(data)
+        setLoading(false)
+        return
+      }
+
+      const mapped = (data || []).map((row: any) => {
         const details = row.dados || {}
         return {
           ...details,
@@ -102,19 +112,7 @@ export function useFichasRecebimento() {
       )
       setFichas(mapped)
     } catch (err: any) {
-      console.error('Error fetching fichas:', err)
-
-      if (err.message === 'Supabase credentials missing') {
-        toast.error('Configuração Ausente', {
-          description:
-            'As credenciais do Supabase não foram configuradas. Carregando dados de exemplo locais.',
-        })
-      } else {
-        toast.error('Erro de Conexão', {
-          description: err.message || 'Não foi possível carregar os registros do banco de dados.',
-        })
-      }
-
+      logger.error('Unhandled error in fetchFichas', err)
       setFichas(getFallbackMockData())
     } finally {
       setLoading(false)
@@ -126,30 +124,34 @@ export function useFichasRecebimento() {
   }, [fetchFichas])
 
   const createFicha = async (ficha: Ficha) => {
-    if (isMockSupabase) {
-      const newStore = [ficha, ...fichas]
-      localStorage.setItem('app_fichas_mock_store', JSON.stringify(newStore))
-      setFichas(newStore)
-      return
-    }
-
     try {
-      const row = {
-        numero_ficha: ficha.id,
-        data_criacao: ficha.dataRecebimento || new Date().toISOString(),
-        status: mapStatusToDb(ficha.status),
-        visto_secretaria: ficha.vistoSecretaria || false,
-        criado_por: ficha.responsavel,
-        atualizado_em: new Date().toISOString(),
-        dados: ficha,
-      }
+      const result = await DataAdapter.fetchWithRetry(
+        'createFicha',
+        async () => {
+          const row = {
+            numero_ficha: ficha.id,
+            data_criacao: ficha.dataRecebimento || new Date().toISOString(),
+            status: mapStatusToDb(ficha.status),
+            visto_secretaria: ficha.vistoSecretaria || false,
+            criado_por: ficha.responsavel,
+            atualizado_em: new Date().toISOString(),
+            dados: ficha,
+          }
 
-      const { data, error } = await supabase.from('fichas_recebimento').insert(row)
-      if (error) throw error
+          const { data, error } = await supabase.from('fichas_recebimento').insert(row).select()
+          if (error) throw error
+          return Array.isArray(data) ? data[0] : data
+        },
+        () => {
+          const stored = getFallbackMockData()
+          const newStore = [ficha, ...stored]
+          localStorage.setItem('app_fichas_mock_store', JSON.stringify(newStore))
+          return { ...ficha, uuid: 'mock-' + Date.now() }
+        },
+      )
 
-      const inserted = Array.isArray(data) ? data[0] : data
-      if (inserted && inserted.id) {
-        ficha.uuid = inserted.id
+      if (result && result.id && !ficha.uuid) {
+        ficha.uuid = result.id
       }
 
       setFichas((prev) => {
@@ -160,7 +162,6 @@ export function useFichasRecebimento() {
         )
       })
     } catch (err: any) {
-      console.error('Error creating ficha:', err)
       toast.error('Erro ao salvar', {
         description: err.message || 'Falha de comunicação com o servidor.',
       })
@@ -169,30 +170,34 @@ export function useFichasRecebimento() {
   }
 
   const updateFicha = async (ficha: Ficha) => {
-    if (isMockSupabase) {
-      const newStore = fichas.map((f: Ficha) => (f.id === ficha.id ? ficha : f))
-      localStorage.setItem('app_fichas_mock_store', JSON.stringify(newStore))
-      setFichas(newStore)
-      return
-    }
-
     try {
-      const row = {
-        status: mapStatusToDb(ficha.status),
-        visto_secretaria: ficha.vistoSecretaria || false,
-        atualizado_em: new Date().toISOString(),
-        dados: ficha,
-      }
+      await DataAdapter.fetchWithRetry(
+        'updateFicha',
+        async () => {
+          const row = {
+            status: mapStatusToDb(ficha.status),
+            visto_secretaria: ficha.vistoSecretaria || false,
+            atualizado_em: new Date().toISOString(),
+            dados: ficha,
+          }
 
-      const { error } = await supabase
-        .from('fichas_recebimento')
-        .update(row)
-        .eq('numero_ficha', ficha.id)
-      if (error) throw error
+          const { error } = await supabase
+            .from('fichas_recebimento')
+            .update(row)
+            .eq('numero_ficha', ficha.id)
+          if (error) throw error
+          return true
+        },
+        () => {
+          const stored = getFallbackMockData()
+          const newStore = stored.map((f: Ficha) => (f.id === ficha.id ? ficha : f))
+          localStorage.setItem('app_fichas_mock_store', JSON.stringify(newStore))
+          return true
+        },
+      )
 
       setFichas((prev) => prev.map((f) => (f.id === ficha.id ? ficha : f)))
     } catch (err: any) {
-      console.error('Error updating ficha:', err)
       toast.error('Erro ao atualizar', {
         description: err.message || 'Falha de comunicação com o servidor.',
       })
@@ -201,23 +206,29 @@ export function useFichasRecebimento() {
   }
 
   const deleteFicha = async (uuid: string, id: string) => {
-    if (isMockSupabase) {
-      const newStore = fichas.filter((f: Ficha) => f.id !== id)
-      localStorage.setItem('app_fichas_mock_store', JSON.stringify(newStore))
-      setFichas(newStore)
-      return
-    }
-
     try {
-      const queryCol = uuid ? 'id' : 'numero_ficha'
-      const queryVal = uuid || id
-
-      const { error } = await supabase.from('fichas_recebimento').delete().eq(queryCol, queryVal)
-      if (error) throw error
+      await DataAdapter.fetchWithRetry(
+        'deleteFicha',
+        async () => {
+          const queryCol = uuid ? 'id' : 'numero_ficha'
+          const queryVal = uuid || id
+          const { error } = await supabase
+            .from('fichas_recebimento')
+            .delete()
+            .eq(queryCol, queryVal)
+          if (error) throw error
+          return true
+        },
+        () => {
+          const stored = getFallbackMockData()
+          const newStore = stored.filter((f: Ficha) => f.id !== id)
+          localStorage.setItem('app_fichas_mock_store', JSON.stringify(newStore))
+          return true
+        },
+      )
 
       setFichas((prev) => prev.filter((f) => f.id !== id))
     } catch (err: any) {
-      console.error('Error deleting ficha:', err)
       toast.error('Erro ao descartar', {
         description: err.message || 'Falha de comunicação com o servidor.',
       })

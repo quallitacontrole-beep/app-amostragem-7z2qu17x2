@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { UserManagement } from '@/components/UserManagement'
+import { SystemDashboard } from '@/components/SystemDashboard'
 
 function ListManager({
   title,
@@ -248,7 +249,7 @@ export default function Config() {
         </Card>
 
         <Tabs defaultValue="amostras">
-          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 w-full h-auto">
+          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 w-full h-auto">
             <TabsTrigger value="amostras" className="py-2">
               Tipos de Amostra
             </TabsTrigger>
@@ -263,6 +264,9 @@ export default function Config() {
             </TabsTrigger>
             <TabsTrigger value="usuarios" className="py-2">
               Usuários
+            </TabsTrigger>
+            <TabsTrigger value="sistema" className="py-2">
+              Sistema
             </TabsTrigger>
           </TabsList>
 
@@ -325,6 +329,10 @@ export default function Config() {
 
           <TabsContent value="usuarios" className="space-y-4 mt-4">
             <UserManagement setoresList={config.setores} />
+          </TabsContent>
+
+          <TabsContent value="sistema" className="space-y-4 mt-4">
+            <SystemDashboard />
           </TabsContent>
         </Tabs>
       </div>
